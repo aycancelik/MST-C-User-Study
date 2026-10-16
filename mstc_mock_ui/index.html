@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heatmap Comparison Study</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="demo-bar" hidden></div>
+
+<main id="app">
+  <!-- WELCOME -->
+  <section class="screen" id="s-welcome" hidden>
+    <div class="narrow">
+      <p class="eyebrow">Research study</p>
+      <h1>Which heatmap is easier to read?</h1>
+      <p class="lead">AI models can show which parts of a photo they focused on, as a coloured "heatmap". For each photo you'll see two heatmaps side by side. Just click the one you find <strong>more legible</strong>, meaning clearer and easier to read.</p>
+      <ul class="facts">
+        <li><span>⏱</span> about <b id="w-minutes">10</b> minutes</li>
+        <li><span>🖼</span> <b id="w-ntrials">75</b> short comparisons</li>
+        <li><span>👆</span> one click each</li>
+      </ul>
+      <label class="field">
+        <span>Prolific ID</span>
+        <input id="pid" autocomplete="off" spellcheck="false" placeholder="e.g. 5f2c…">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="consent">
+        <span>I'm 18 or older, I've read the study information, and I agree to take part. My answers are stored anonymously and I can stop at any time.</span>
+      </label>
+      <button class="btn primary" id="btn-start" disabled>Continue</button>
+    </div>
+  </section>
+
+  <!-- INSTRUCTIONS: all task wording lives here, trials themselves are wordless -->
+  <section class="screen" id="s-instr" hidden>
+    <div class="narrow">
+      <div class="steps" id="steps"></div>
+
+      <div class="page" data-page="0">
+        <p class="eyebrow">Step 1 of 4 · What you'll see</p>
+        <h1>A photo and two heatmaps</h1>
+        <p>On every page you'll see a <b>photo</b> at the top. Below it are <b>two heatmaps</b> of that same photo, made by an AI model. Each one highlights the parts of the photo the model paid attention to.</p>
+        <div class="mock" id="mock-trial"></div>
+        <p class="muted">Every page looks like this. Only the photo and the heatmaps change.</p>
+      </div>
+
+      <div class="page" data-page="1">
+        <p class="eyebrow">Step 2 of 4 · Reading a heatmap</p>
+        <h1>Colours show where the model looked</h1>
+        <div class="legend-row">
+          <div class="legend-bar"></div>
+          <div class="legend-labels"><span>against</span><span>ignored</span><span>for</span></div>
+        </div>
+        <p>Each heatmap covers the same area as the photo. <b class="red">Red</b> and <b class="blue">blue</b> mark regions the model reacted to; grey means it ignored them.</p>
+        <p>The heatmaps can look very different from each other, some smooth, some patchy, some speckled or almost empty. That's expected.</p>
+      </div>
+
+      <div class="page" data-page="2">
+        <p class="eyebrow">Step 3 of 4 · Your task</p>
+        <h1>Click the heatmap you find more legible</h1>
+        <p>For each photo, look at the two heatmaps and <b>click the one that is more legible to you</b>, meaning the one that's clearer and easier to read.</p>
+        <p>The question won't be repeated on every page. Just keep doing the same thing: one click, and the next pair appears straight away.</p>
+        <ul class="rules">
+          <li>There are no right or wrong answers. We want <b>your</b> impression.</li>
+          <li>Don't overthink it. A few seconds per pair is plenty.</li>
+          <li>The same photo may appear several times, each time with different heatmaps. That's intended: judge every pair on its own, regardless of what you picked before.</li>
+          <li>There are <b id="i-ntrials">75</b> pairs, with a short break halfway.</li>
+        </ul>
+      </div>
+
+      <div class="page" data-page="3">
+        <p class="eyebrow">Step 4 of 4 · Before you start</p>
+        <h1>Two last things</h1>
+        <div class="attn-demo">Attention check: please click the <b>right</b> heatmap.</div>
+        <p>Now and then a yellow note like this will appear above the heatmaps. When it does, <b>do what it says</b> instead of judging legibility. It's there to check that you're paying attention.</p>
+        <div class="keys">
+          <span>Click a heatmap, or use <kbd>←</kbd> / <kbd>→</kbd> for left / right</span>
+        </div>
+      </div>
+
+      <div class="pager">
+        <button class="btn ghost" id="btn-back">Back</button>
+        <button class="btn primary" id="btn-fwd">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRIAL: photo + two heatmaps, no text (except on attention checks) -->
+  <section class="screen" id="s-trial" hidden>
+    <header class="trial-head">
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="counter" id="counter">1 / 75</span>
+    </header>
+
+    <div class="stimulus">
+      <figure class="photo">
+        <img id="img-photo" alt="photo" width="224" height="224">
+      </figure>
+
+      <div class="attn-banner" id="attn" hidden></div>
+
+      <div class="choices">
+        <button class="card" id="card-L" data-side="L" aria-label="left heatmap">
+          <div class="hm-wrap"><img class="hm-photo" alt=""><img class="hm" alt="left heatmap"></div>
+          <span class="demo-label"></span>
+        </button>
+        <button class="card" id="card-R" data-side="R" aria-label="right heatmap">
+          <div class="hm-wrap"><img class="hm-photo" alt=""><img class="hm" alt="right heatmap"></div>
+          <span class="demo-label"></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BREAK -->
+  <section class="screen" id="s-break" hidden>
+    <div class="narrow center">
+      <p class="eyebrow">Halfway</p>
+      <h1>Nice, you're halfway through ☕</h1>
+      <p>Take a short breather if you like. Continue when you're ready.</p>
+      <button class="btn primary" id="btn-resume">Continue</button>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section class="screen" id="s-end" hidden>
+    <div class="narrow center">
+      <p class="eyebrow">Done</p>
+      <h1>Thank you!</h1>
+      <p id="end-msg">Your answers have been recorded.</p>
+      <div class="code-box" id="code-box" hidden>
+        <span>Completion code</span>
+        <b id="completion-code"></b>
+      </div>
+      <a class="btn primary" id="btn-prolific" hidden>Return to Prolific</a>
+      <div class="end-tools" id="end-tools">
+        <button class="btn ghost" id="btn-csv">Download responses (.csv)</button>
+        <button class="btn ghost" id="btn-json">Download responses (.json)</button>
+      </div>
+      <div id="summary"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-error" hidden>
+    <div class="narrow center"><h1>Something went wrong</h1><p id="err-msg"></p></div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

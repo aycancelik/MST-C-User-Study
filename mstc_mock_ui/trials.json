@@ -1,0 +1,529 @@
+{
+ "meta": {
+  "wnid": "n03000134",
+  "class_name": "chain-link fence",
+  "target_label": 489,
+  "seed": 42,
+  "models": [
+   "dino",
+   "resnet34",
+   "vgg16"
+  ],
+  "methods": [
+   "gradcam",
+   "integrated_gradients",
+   "lime",
+   "lrp_epsilon",
+   "lrp_epsilonplus"
+  ],
+  "n_images": 24,
+  "n_trials": 72,
+  "complete_images_available": 24
+ },
+ "trials": [
+  {
+   "id": "t000",
+   "image": "ILSVRC2012_val_00001094",
+   "model": "dino",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t001",
+   "image": "ILSVRC2012_val_00001094",
+   "model": "resnet34",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t002",
+   "image": "ILSVRC2012_val_00001094",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t003",
+   "image": "ILSVRC2012_val_00007825",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t004",
+   "image": "ILSVRC2012_val_00007825",
+   "model": "resnet34",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t005",
+   "image": "ILSVRC2012_val_00007825",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t006",
+   "image": "ILSVRC2012_val_00007827",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t007",
+   "image": "ILSVRC2012_val_00007827",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t008",
+   "image": "ILSVRC2012_val_00007827",
+   "model": "vgg16",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t009",
+   "image": "ILSVRC2012_val_00007982",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t010",
+   "image": "ILSVRC2012_val_00007982",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t011",
+   "image": "ILSVRC2012_val_00007982",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t012",
+   "image": "ILSVRC2012_val_00009432",
+   "model": "dino",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t013",
+   "image": "ILSVRC2012_val_00009432",
+   "model": "resnet34",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t014",
+   "image": "ILSVRC2012_val_00009432",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t015",
+   "image": "ILSVRC2012_val_00010799",
+   "model": "dino",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t016",
+   "image": "ILSVRC2012_val_00010799",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t017",
+   "image": "ILSVRC2012_val_00010799",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t018",
+   "image": "ILSVRC2012_val_00010835",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t019",
+   "image": "ILSVRC2012_val_00010835",
+   "model": "resnet34",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t020",
+   "image": "ILSVRC2012_val_00010835",
+   "model": "vgg16",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t021",
+   "image": "ILSVRC2012_val_00015687",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t022",
+   "image": "ILSVRC2012_val_00015687",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t023",
+   "image": "ILSVRC2012_val_00015687",
+   "model": "vgg16",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t024",
+   "image": "ILSVRC2012_val_00018410",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t025",
+   "image": "ILSVRC2012_val_00018410",
+   "model": "resnet34",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t026",
+   "image": "ILSVRC2012_val_00018410",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t027",
+   "image": "ILSVRC2012_val_00022377",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t028",
+   "image": "ILSVRC2012_val_00022377",
+   "model": "resnet34",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t029",
+   "image": "ILSVRC2012_val_00022377",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t030",
+   "image": "ILSVRC2012_val_00023377",
+   "model": "dino",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t031",
+   "image": "ILSVRC2012_val_00023377",
+   "model": "resnet34",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t032",
+   "image": "ILSVRC2012_val_00023377",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t033",
+   "image": "ILSVRC2012_val_00023998",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t034",
+   "image": "ILSVRC2012_val_00023998",
+   "model": "resnet34",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t035",
+   "image": "ILSVRC2012_val_00023998",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t036",
+   "image": "ILSVRC2012_val_00024833",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t037",
+   "image": "ILSVRC2012_val_00024833",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t038",
+   "image": "ILSVRC2012_val_00024833",
+   "model": "vgg16",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t039",
+   "image": "ILSVRC2012_val_00025836",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t040",
+   "image": "ILSVRC2012_val_00025836",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t041",
+   "image": "ILSVRC2012_val_00025836",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t042",
+   "image": "ILSVRC2012_val_00025906",
+   "model": "dino",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t043",
+   "image": "ILSVRC2012_val_00025906",
+   "model": "resnet34",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t044",
+   "image": "ILSVRC2012_val_00025906",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t045",
+   "image": "ILSVRC2012_val_00026576",
+   "model": "dino",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t046",
+   "image": "ILSVRC2012_val_00026576",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t047",
+   "image": "ILSVRC2012_val_00026576",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t048",
+   "image": "ILSVRC2012_val_00027786",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t049",
+   "image": "ILSVRC2012_val_00027786",
+   "model": "resnet34",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t050",
+   "image": "ILSVRC2012_val_00027786",
+   "model": "vgg16",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t051",
+   "image": "ILSVRC2012_val_00030386",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t052",
+   "image": "ILSVRC2012_val_00030386",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t053",
+   "image": "ILSVRC2012_val_00030386",
+   "model": "vgg16",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t054",
+   "image": "ILSVRC2012_val_00033887",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t055",
+   "image": "ILSVRC2012_val_00033887",
+   "model": "resnet34",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t056",
+   "image": "ILSVRC2012_val_00033887",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t057",
+   "image": "ILSVRC2012_val_00036941",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t058",
+   "image": "ILSVRC2012_val_00036941",
+   "model": "resnet34",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t059",
+   "image": "ILSVRC2012_val_00036941",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t060",
+   "image": "ILSVRC2012_val_00039544",
+   "model": "dino",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t061",
+   "image": "ILSVRC2012_val_00039544",
+   "model": "resnet34",
+   "method_a": "lrp_epsilon",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t062",
+   "image": "ILSVRC2012_val_00039544",
+   "model": "vgg16",
+   "method_a": "integrated_gradients",
+   "method_b": "lime"
+  },
+  {
+   "id": "t063",
+   "image": "ILSVRC2012_val_00047124",
+   "model": "dino",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  },
+  {
+   "id": "t064",
+   "image": "ILSVRC2012_val_00047124",
+   "model": "resnet34",
+   "method_a": "lime",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t065",
+   "image": "ILSVRC2012_val_00047124",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "integrated_gradients"
+  },
+  {
+   "id": "t066",
+   "image": "ILSVRC2012_val_00047785",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t067",
+   "image": "ILSVRC2012_val_00047785",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t068",
+   "image": "ILSVRC2012_val_00047785",
+   "model": "vgg16",
+   "method_a": "lime",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t069",
+   "image": "ILSVRC2012_val_00048776",
+   "model": "dino",
+   "method_a": "integrated_gradients",
+   "method_b": "lrp_epsilonplus"
+  },
+  {
+   "id": "t070",
+   "image": "ILSVRC2012_val_00048776",
+   "model": "resnet34",
+   "method_a": "gradcam",
+   "method_b": "lrp_epsilon"
+  },
+  {
+   "id": "t071",
+   "image": "ILSVRC2012_val_00048776",
+   "model": "vgg16",
+   "method_a": "gradcam",
+   "method_b": "lime"
+  }
+ ]
+}
