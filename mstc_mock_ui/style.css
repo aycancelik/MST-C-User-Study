@@ -133,3 +133,10 @@ body.demo .demo-label { display: block; }
 .attn-banner { margin: 18px 0 0; max-width: 560px; }
 .stimulus .choices { margin-top: 22px; }
 @media (max-width: 640px) { .mock-pair img { width: 120px; height: 120px; } }
+
+.loading { text-align: center; color: var(--ink-3); padding: 80px 16px; }
+body.ready .loading { display: none; }
+
+/* demo only: mark hidden attention checks for the researcher */
+body.demo.is-catch .card { outline: 2px dashed #f59e0b; outline-offset: 4px; }
+#demo-bar .catch-flag { color: #fbbf24; }

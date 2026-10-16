@@ -525,5 +525,49 @@
    "method_a": "gradcam",
    "method_b": "lime"
   }
+ ],
+ "catch": [
+  {
+   "id": "catch_00026576_dino",
+   "image": "ILSVRC2012_val_00026576",
+   "model": "dino",
+   "real": "assets/catch/00026576_dino_real.png",
+   "scrambled": "assets/catch/00026576_dino_scrambled.png"
+  },
+  {
+   "id": "catch_00007827_dino",
+   "image": "ILSVRC2012_val_00007827",
+   "model": "dino",
+   "real": "assets/catch/00007827_dino_real.png",
+   "scrambled": "assets/catch/00007827_dino_scrambled.png"
+  },
+  {
+   "id": "catch_00047124_resnet34",
+   "image": "ILSVRC2012_val_00047124",
+   "model": "resnet34",
+   "real": "assets/catch/00047124_resnet34_real.png",
+   "scrambled": "assets/catch/00047124_resnet34_scrambled.png"
+  },
+  {
+   "id": "catch_00024833_resnet34",
+   "image": "ILSVRC2012_val_00024833",
+   "model": "resnet34",
+   "real": "assets/catch/00024833_resnet34_real.png",
+   "scrambled": "assets/catch/00024833_resnet34_scrambled.png"
+  },
+  {
+   "id": "catch_00036941_vgg16",
+   "image": "ILSVRC2012_val_00036941",
+   "model": "vgg16",
+   "real": "assets/catch/00036941_vgg16_real.png",
+   "scrambled": "assets/catch/00036941_vgg16_scrambled.png"
+  },
+  {
+   "id": "catch_00023998_vgg16",
+   "image": "ILSVRC2012_val_00023998",
+   "model": "vgg16",
+   "real": "assets/catch/00023998_vgg16_real.png",
+   "scrambled": "assets/catch/00023998_vgg16_scrambled.png"
+  }
  ]
 }

@@ -6,18 +6,26 @@ predicts human perception. Stimuli: ImageNet `n03000134` (chain-link fence, labe
 
 All task instructions live on 4 intro pages (what you'll see → reading a heatmap → your task →
 attention checks). The trials themselves are wordless: photo on top, two heatmaps below. Only
-attention-check trials show a short yellow note ("please click the left/right heatmap"). The intro example
-uses a photo that is *not* in the trial set (`assets/_example/`).
+nothing else is shown, not even on attention checks. The intro example uses a photo that is *not* in the trial
+set (`assets/example/`).
 
 One click per trial: the chosen card flashes for 250 ms, then the next pair loads. No confidence
 rating, no Next button. Clicks are ignored until both heatmaps have loaded, and the response-time
 clock starts at that moment.
 
-* **24 images × 3 models (DINO, ResNet34, VGG16) = 72 trials**, + 3 attention checks = 75
+* **pool:** 24 images × 3 models (DINO, ResNet34, VGG16) = 72 trials
+* **per participant: 39 pairs + 3 hidden attention checks = 42 screens** (`nTrials`, `attentionChecks` in `config.js`).
+  Each participant's 39 pairs are balanced: 13 per model (14 incl. its check), each of the 10 method pairs 3–4×,
+  each method 15–16× (the best possible with 78 slots over 5 methods). Different participants get different
+  subsets, so all 72 pool pairs are covered across people (greedy pick + swap repair, verified on 1000 simulated IDs)
+* **hidden attention checks (catch trials):** a real Grad-CAM next to the *same* heatmap with its pixels
+  shuffled (same colours, no structure, i.e. static). They look like normal trials and participants are never told
+  about them. Correct = the real one. One per model, real side balanced, one at a random spot in each third
+  of the session. Only `?demo=1` labels them (dashed outline + "HIDDEN ATTENTION CHECK" in the top bar)
 * each trial = 2 of the 5 methods (Grad-CAM, Integrated Gradients, LIME, LRP-ε, LRP-ε+), same image + model
 * all 10 method pairs appear 7–8× each; every image gets 3 different pairs (one per model)
 * per participant (seeded by Prolific ID): shuffled order (no photo twice in a row),
-  exactly 50/50 left/right placement, attention checks at 25/50/75 %
+  left/right placement 50/50, short break halfway
 * progress is saved in the browser, so a reload resumes where the participant left off
 
 ## Try it locally

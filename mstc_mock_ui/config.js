@@ -3,8 +3,14 @@
 window.STUDY_CONFIG = {
   studyName: "MST-C heatmap comparison (mock)",
 
-  // Attention checks are injected at these relative positions (0..1).
-  attentionAt: [0.25, 0.5, 0.75],
+  // Pairs per participant, drawn (balanced) from the pool in trials.json.
+  // null = show every trial in the pool.
+  nTrials: 39,
+
+  // Hidden attention checks (catch trials: real Grad-CAM vs. pixel-scrambled copy).
+  // They look like normal trials; nothing tells participants they exist.
+  // 39 pairs + 3 checks = 42 screens.
+  attentionChecks: 3,
 
   // Show a short break screen after this fraction of trials (null = no break).
   breakAt: 0.5,

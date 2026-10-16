@@ -4,7 +4,8 @@
  * per participant (seeded by participant ID, so a reload gives the same session):
  *   - trial order shuffled, never the same photo twice in a row
  *   - left/right placement of the two methods counterbalanced (exactly half each way)
- *   - attention checks injected at CONFIG.attentionAt, target side balanced
+ *   - CONFIG.nTrials pairs drawn (balanced) from the pool
+ *   - CONFIG.attentionChecks hidden catch trials (real vs scrambled heatmap), side balanced
  * URL params: ?PROLIFIC_PID=..&STUDY_ID=..&SESSION_ID=..   ?demo=1 (researcher view)   ?reset=1
  */
 (() => {
@@ -31,8 +32,57 @@
   const shuffle = (arr, rnd) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   // ---------- session building ----------
-  function buildSession(trials, pid) {
+  // Pick n trials from the pool for this participant, keeping the subset balanced:
+  // equal share per model (round-robin), method pairs / methods / photos spread as evenly as possible.
+  // Different participants get different subsets, so across people the whole pool gets covered.
+  function pickSubset(pool, n, rnd) {
+    if (!n || n >= pool.length) return pool.slice();
+    const cand = shuffle(pool, rnd);
+    const models = shuffle([...new Set(pool.map((t) => t.model))], rnd);
+    const cnt = { pair: {}, img: {}, meth: {} };
+    const inc = (o, k) => (o[k] = (o[k] || 0) + 1);
+    const pairKey = (t) => [t.method_a, t.method_b].sort().join("|");
+    const chosen = [], used = new Set();
+    for (let k = 0; chosen.length < n; k++) {
+      const m = models[k % models.length];
+      let best = null, bestScore = Infinity;
+      for (const t of cand) {
+        if (used.has(t.id) || t.model !== m) continue;
+        const sc = 100 * (cnt.pair[pairKey(t)] || 0) + 30 * ((cnt.meth[t.method_a] || 0) + (cnt.meth[t.method_b] || 0))
+          + 10 * (cnt.img[t.image] || 0);
+        if (sc < bestScore) { best = t; bestScore = sc; }
+      }
+      if (!best) { models.splice(k % models.length, 1); k--; continue; } // model exhausted
+      chosen.push(best); used.add(best.id);
+      inc(cnt.pair, pairKey(best)); inc(cnt.img, best.image); inc(cnt.meth, best.method_a); inc(cnt.meth, best.method_b);
+    }
+    // repair: swap a chosen trial for an unused one of the SAME model while that lowers the imbalance
+    // (sum of squared counts; pairs weigh most, then methods, then photo repeats)
+    const cost = (set) => {
+      const c = { p: {}, m: {}, i: {} };
+      set.forEach((t) => { inc(c.p, pairKey(t)); inc(c.m, t.method_a); inc(c.m, t.method_b); inc(c.i, t.image); });
+      const sq = (o) => Object.values(o).reduce((a, v) => a + v * v, 0);
+      return 100 * sq(c.p) + 30 * sq(c.m) + 10 * sq(c.i);
+    };
+    let curCost = cost(chosen), improved = true;
+    for (let it = 0; improved && it < 100; it++) {
+      improved = false;
+      const unused = cand.filter((t) => !used.has(t.id));
+      for (let i = 0; i < chosen.length && !improved; i++) {
+        for (const u of unused) {
+          if (u.model !== chosen[i].model) continue;
+          const trial = chosen.slice(); trial[i] = u;
+          const c = cost(trial);
+          if (c < curCost) { used.delete(chosen[i].id); used.add(u.id); chosen[i] = u; curCost = c; improved = true; break; }
+        }
+      }
+    }
+    return chosen;
+  }
+
+  function buildSession(allTrials, pid) {
     const rnd = mulberry32(hash("mstc|" + pid));
+    const trials = pickSubset(allTrials, CFG.nTrials, rnd);
 
     // order: shuffle until no photo repeats back-to-back (cheap; 24 photos x 3)
     let order;
@@ -48,18 +98,34 @@
       left: flips[i] ? t.method_a : t.method_b,
       right: flips[i] ? t.method_b : t.method_a,
     }));
+    seq.forEach((t) => { t.Lsrc = src(t.image, t.model, t.left); t.Rsrc = src(t.image, t.model, t.right); });
 
-    // attention checks: reuse a random stimulus, instruct a side
-    const nA = (CFG.attentionAt || []).length;
-    const targets = shuffle(Array.from({ length: nA }, (_, i) => (i % 2 ? "L" : "R")), rnd);
-    (CFG.attentionAt || []).forEach((p, k) => {
-      const at = Math.round(p * (seq.length + 1));
-      const near = new Set([seq[at - 1], seq[at]].filter(Boolean).map((t) => t.image));
-      const pool = trials.filter((t) => !near.has(t.image));
-      const src = pool[Math.floor(rnd() * pool.length)];
-      seq.splice(at, 0, { id: `attn${k + 1}`, kind: "attention", image: src.image, model: src.model,
-        left: src.method_a, right: src.method_b, target: targets[k] });
-    });
+    // hidden attention checks ("catch trials"): real Grad-CAM vs. the same map pixel-scrambled.
+    // They look like any other trial; the correct answer is the real (structured) heatmap.
+    // One per model (keeps model counts balanced), real side balanced, each dropped at a random
+    // spot inside its own third of the session so the position isn't predictable.
+    const nA = Math.min(CFG.attentionChecks ?? 3, (DATA.catch || []).length);
+    if (nA) {
+      const byModel = {};
+      shuffle(DATA.catch, rnd).forEach((c) => (byModel[c.model] = byModel[c.model] || []).push(c));
+      const models = shuffle(Object.keys(byModel), rnd);
+      const picks = Array.from({ length: nA }, (_, k) => byModel[models[k % models.length]].shift()).filter(Boolean);
+      const sides = shuffle(picks.map((_, k) => (k % 2 ? "L" : "R")), rnd);
+      const seg = seq.length / picks.length;
+      // insert from the back so earlier positions stay valid
+      picks.map((c, k) => ({ c, k, at: Math.max(3, Math.floor(k * seg + rnd() * seg)) }))
+        .sort((x, y) => y.at - x.at)
+        .forEach(({ c, k, at }) => {
+          // nearest slot (searching both ways) where neither neighbour shows the same photo
+          const ok = (q) => q >= 3 && q <= seq.length && ![seq[q - 1], seq[q]].some((t) => t && t.image === c.image);
+          let pos = at;
+          for (let d = 0; d <= seq.length; d++) { if (ok(at + d)) { pos = at + d; break; } if (ok(at - d)) { pos = at - d; break; } }
+          const realLeft = sides[k] === "L";
+          seq.splice(pos, 0, { id: c.id, kind: "attention", image: c.image, model: c.model, target: sides[k],
+            left: realLeft ? "gradcam (real)" : "scrambled", right: realLeft ? "scrambled" : "gradcam (real)",
+            Lsrc: realLeft ? c.real : c.scrambled, Rsrc: realLeft ? c.scrambled : c.real });
+        });
+    }
     return seq;
   }
 
@@ -71,6 +137,7 @@
   const photo = (img) => `assets/${img}/input.png`;
 
   function show(id) {
+    document.body.classList.add("ready");
     document.querySelectorAll(".screen").forEach((s) => (s.hidden = s.id !== id));
     window.scrollTo(0, 0);
     renderDemoBar();
@@ -78,7 +145,7 @@
 
   // ---------- welcome ----------
   function initWelcome() {
-    const n = DATA.trials.length + (CFG.attentionAt || []).length;
+    const n = Math.min(CFG.nTrials || Infinity, DATA.trials.length) + Math.min(CFG.attentionChecks ?? 3, (DATA.catch || []).length);
     $("#w-ntrials").textContent = n;
     $("#w-minutes").textContent = Math.max(5, Math.round((n * (CFG.secondsPerTrial || 11)) / 60 / 5) * 5);
     const urlPid = Q.get("PROLIFIC_PID");
@@ -107,13 +174,13 @@
   }
 
   // ---------- instructions (paged) ----------
-  // Example uses a photo that is NOT in the trial set (assets/_example), so nobody is primed on a real trial.
+  // Example uses a photo that is NOT in the trial set (assets/example), so nobody is primed on a real trial.
   function initInstructions() {
-    const ex = "assets/_example/";
+    const ex = "assets/example/";
     $("#mock-trial").innerHTML = `
       <img class="mock-photo" src="${ex}input.png" alt="example photo">
       <div class="mock-pair"><img src="${ex}heatmap_1.png" alt="example heatmap"><img src="${ex}heatmap_2.png" alt="example heatmap"></div>`;
-    $("#i-ntrials").textContent = SEQ.length;
+    $("#i-ntrials").textContent = SEQ.length; // participants just see the total
     const pages = [...document.querySelectorAll("#s-instr .page")];
     $("#steps").innerHTML = pages.map(() => "<i></i>").join("");
     let k = 0;
@@ -148,18 +215,18 @@
     $("#progress-fill").style.width = `${(100 * S.idx) / SEQ.length}%`;
 
     // trials are wordless; only attention checks carry an instruction
-    const attn = $("#attn");
-    attn.hidden = t.kind !== "attention";
-    if (t.kind === "attention") attn.innerHTML = `Attention check: please click the <b>${t.target === "L" ? "left" : "right"}</b> heatmap.`;
+    $("#attn").hidden = true; // hidden checks: nothing tells participants
+
 
     $(".photo").hidden = CFG.showPhoto === false;
     const imgs = [$("#img-photo"), $("#card-L .hm"), $("#card-R .hm")];
     imgs[0].src = photo(t.image);
-    imgs[1].src = src(t.image, t.model, t.left);
-    imgs[2].src = src(t.image, t.model, t.right);
+    imgs[1].src = t.Lsrc;
+    imgs[2].src = t.Rsrc;
     document.querySelectorAll(".hm-photo").forEach((im) => (im.src = photo(t.image)));
     $("#card-L .demo-label").textContent = `${t.left} · ${t.model}`;
     $("#card-R .demo-label").textContent = `${t.right} · ${t.model}`;
+    document.body.classList.toggle("is-catch", t.kind === "attention");
     applyOverlay();
     document.querySelectorAll(".card").forEach((c) => c.classList.remove("selected", "dimmed"));
 
@@ -173,7 +240,7 @@
 
   function preload(i) {
     const t = SEQ[i]; if (!t) return;
-    [photo(t.image), src(t.image, t.model, t.left), src(t.image, t.model, t.right)].forEach((u) => { const im = new Image(); im.src = u; });
+    [photo(t.image), t.Lsrc, t.Rsrc].forEach((u) => { const im = new Image(); im.src = u; });
   }
 
   function choose(side, instant) {
@@ -271,7 +338,7 @@
     const t = SEQ && S && SEQ[S.idx];
     bar.innerHTML = `<span class="pill">DEMO</span>
       <span>pid <b>${S ? S.pid : "–"}</b></span>
-      ${t ? `<span>${t.kind === "attention" ? "<b>ATTENTION CHECK</b>" : `trial <b>${t.id}</b>`} · ${t.image.slice(-8)} · <b>${t.model}</b></span>` : ""}
+      ${t ? `<span>${t.kind === "attention" ? `<b class="catch-flag">HIDDEN ATTENTION CHECK</b> · correct = ${t.target === "L" ? "left" : "right"}` : `trial <b>${t.id}</b>`} · ${t.image.slice(-8)} · <b>${t.model}</b></span>` : ""}
       <span class="spacer"></span>
       <label><input type="checkbox" id="d-ov" ${CFG.overlay ? "checked" : ""}> overlay on photo</label>
       ${S && S.idx < SEQ.length ? `<button id="d-fill">auto-answer 10</button><button id="d-end">auto-answer all</button>` : ""}
@@ -299,6 +366,9 @@
   });
 
   // ---------- boot ----------
+  window.addEventListener("error", (e) => {
+    const m = $("#err-msg"); if (m) { m.textContent = e.message; show("s-error"); }
+  });
   fetch("trials.json")
     .then((r) => { if (!r.ok) throw new Error(`trials.json: HTTP ${r.status}`); return r.json(); })
     .then((d) => { DATA = d; initWelcome(); })

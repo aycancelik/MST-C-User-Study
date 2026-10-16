@@ -10,6 +10,8 @@
 <div id="demo-bar" hidden></div>
 
 <main id="app">
+  <p class="loading" id="loading">Loading…</p>
+  <noscript><p class="loading">This study needs JavaScript. Please enable it and reload.</p></noscript>
   <!-- WELCOME -->
   <section class="screen" id="s-welcome" hidden>
     <div class="narrow">
@@ -17,8 +19,8 @@
       <h1>Which heatmap is easier to read?</h1>
       <p class="lead">AI models can show which parts of a photo they focused on, as a coloured "heatmap". For each photo you'll see two heatmaps side by side. Just click the one you find <strong>more legible</strong>, meaning clearer and easier to read.</p>
       <ul class="facts">
-        <li><span>⏱</span> about <b id="w-minutes">10</b> minutes</li>
-        <li><span>🖼</span> <b id="w-ntrials">75</b> short comparisons</li>
+        <li><span>⏱</span> about <b id="w-minutes">5</b> minutes</li>
+        <li><span>🖼</span> <b id="w-ntrials">42</b> short comparisons</li>
         <li><span>👆</span> one click each</li>
       </ul>
       <label class="field">
@@ -66,18 +68,18 @@
           <li>There are no right or wrong answers. We want <b>your</b> impression.</li>
           <li>Don't overthink it. A few seconds per pair is plenty.</li>
           <li>The same photo may appear several times, each time with different heatmaps. That's intended: judge every pair on its own, regardless of what you picked before.</li>
-          <li>There are <b id="i-ntrials">75</b> pairs, with a short break halfway.</li>
+          <li>There are <b id="i-ntrials">42</b> pairs, with a short break halfway.</li>
         </ul>
       </div>
 
       <div class="page" data-page="3">
-        <p class="eyebrow">Step 4 of 4 · Before you start</p>
-        <h1>Two last things</h1>
-        <div class="attn-demo">Attention check: please click the <b>right</b> heatmap.</div>
-        <p>Now and then a yellow note like this will appear above the heatmaps. When it does, <b>do what it says</b> instead of judging legibility. It's there to check that you're paying attention.</p>
+        <p class="eyebrow">Step 4 of 4 · Ready?</p>
+        <h1>You're all set</h1>
+        <p>Remember: <b>click the heatmap you find more legible</b>. One click per pair, no right or wrong answers.</p>
         <div class="keys">
           <span>Click a heatmap, or use <kbd>←</kbd> / <kbd>→</kbd> for left / right</span>
         </div>
+        <p class="muted">Please stay focused until the end, and take the short break halfway if you need it.</p>
       </div>
 
       <div class="pager">
@@ -87,7 +89,7 @@
     </div>
   </section>
 
-  <!-- TRIAL: photo + two heatmaps, no text (except on attention checks) -->
+  <!-- TRIAL: photo + two heatmaps, no text at all (hidden attention checks look identical) -->
   <section class="screen" id="s-trial" hidden>
     <header class="trial-head">
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>

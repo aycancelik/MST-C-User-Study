@@ -22,6 +22,9 @@ import itertools
 import json
 import random
 import shutil
+
+import numpy as np
+from PIL import Image
 from collections import Counter
 from pathlib import Path
 
@@ -75,12 +78,14 @@ def build(src: Path, out: Path, n_images: int, seed: int) -> dict:
             continue
         hm = [img_dir / ex_model / TARGET_DIR / f"{x}.png" for x in ex_methods]
         if (img_dir / "input.png").exists() and all(h.exists() for h in hm):
-            (assets / "_example").mkdir(exist_ok=True)
-            shutil.copy2(img_dir / "input.png", assets / "_example" / "input.png")
+            (assets / "example").mkdir(exist_ok=True)
+            shutil.copy2(img_dir / "input.png", assets / "example" / "input.png")
             for k, h in enumerate(hm, 1):
-                shutil.copy2(h, assets / "_example" / f"heatmap_{k}.png")
+                shutil.copy2(h, assets / "example" / f"heatmap_{k}.png")
             print("intro example image:", img_dir.name)
             break
+
+    catch = make_catch_trials(src, assets, images, seed)
 
     pair_counts = Counter(tuple(sorted((t["method_a"], t["method_b"]))) for t in trials)
     method_counts = Counter(x for t in trials for x in (t["method_a"], t["method_b"]))
@@ -97,6 +102,7 @@ def build(src: Path, out: Path, n_images: int, seed: int) -> dict:
             "complete_images_available": len(pool),
         },
         "trials": trials,
+        "catch": catch,
     }
     (out / "trials.json").write_text(json.dumps(data, indent=1))
 
@@ -104,6 +110,32 @@ def build(src: Path, out: Path, n_images: int, seed: int) -> dict:
     print("pair counts:", {f"{a} vs {b}": c for (a, b), c in sorted(pair_counts.items())})
     print("method counts:", dict(method_counts))
     return data
+
+
+def make_catch_trials(src: Path, assets: Path, images: list[str], seed: int, per_model: int = 2) -> list[dict]:
+    """Hidden attention checks: a real Grad-CAM vs. the SAME heatmap with its pixels shuffled.
+
+    Same colours, zero spatial structure, so the scrambled one is unambiguously the less legible.
+    Participants aren't told these exist; choosing the scrambled map = not paying attention.
+    """
+    rng = np.random.default_rng(seed + 2)
+    out_dir = assets / "catch"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    catch = []
+    for m in MODELS:
+        for img in rng.choice(images, size=per_model, replace=False):
+            real = src / img / m / TARGET_DIR / "gradcam.png"
+            arr = np.asarray(Image.open(real).convert("RGB"))
+            flat = arr.reshape(-1, 3)
+            scrambled = flat[rng.permutation(len(flat))].reshape(arr.shape)
+            name = f"{img[-8:]}_{m}"
+            shutil.copy2(real, out_dir / f"{name}_real.png")
+            Image.fromarray(scrambled).save(out_dir / f"{name}_scrambled.png")
+            catch.append({"id": f"catch_{name}", "image": img, "model": m,
+                          "real": f"assets/catch/{name}_real.png",
+                          "scrambled": f"assets/catch/{name}_scrambled.png"})
+    print(f"{len(catch)} catch stimuli (hidden attention checks)")
+    return catch
 
 
 if __name__ == "__main__":
