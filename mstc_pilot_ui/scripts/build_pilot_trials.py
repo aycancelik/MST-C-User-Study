@@ -58,18 +58,19 @@ def target_dir(true_label: int) -> str:
     return f"label_target_{true_label:04d}"
 
 
-def heatmap_path(src: Path, info: dict, image_id: str, model: str, method: str) -> Path:
-    return src / info["class_id"] / image_id / model / target_dir(info["true_label"]) / f"{method}.png"
+def heatmap_path(src: Path, info: dict, image_id: str, model: str, method: str, suffix: str = "") -> Path:
+    return src / info["class_id"] / image_id / model / target_dir(info["true_label"]) / f"{method}{suffix}.png"
 
 
-def check_available(src: Path, images: dict[str, dict]) -> tuple[list[str], list[str]]:
-    """Split image_ids into (complete, missing) based on what's actually on disk."""
+def check_available(src: Path, images: dict[str, dict], suffix: str = "") -> tuple[list[str], list[str]]:
+    """Split image_ids into (complete, missing) based on what's actually on disk.
+
+    input.png (the original photo) is not required: some heatmap dumps don't
+    include it, and the app can run with showPhoto: false in config.js.
+    """
     complete, missing = [], []
     for img, info in images.items():
-        img_dir = src / info["class_id"] / img
-        ok = (img_dir / "input.png").exists() and all(
-            heatmap_path(src, info, img, m, x).exists() for m in MODELS for x in METHODS
-        )
+        ok = all(heatmap_path(src, info, img, m, x, suffix).exists() for m in MODELS for x in METHODS)
         (complete if ok else missing).append(img)
     return complete, missing
 
@@ -89,6 +90,9 @@ def main() -> None:
     ap.add_argument("--allow-partial", action="store_true",
                      help="proceed with whichever of the 24 images are available on disk, "
                           "instead of stopping if any are missing")
+    ap.add_argument("--method-suffix", default="_relu",
+                     help="suffix before .png on each heatmap file, e.g. gradcam_relu.png "
+                          "(pass '' if your dump names them plain gradcam.png)")
     args = ap.parse_args()
     rng = random.Random(args.seed)
 
@@ -98,7 +102,7 @@ def main() -> None:
     selected = load_selected(args.selected)
     print(f"{len(selected)} images in {args.selected.name}")
 
-    complete, missing = check_available(src, selected)
+    complete, missing = check_available(src, selected, args.method_suffix)
     if missing:
         print(f"{len(missing)} of {len(selected)} images not found under {src}:")
         for img in missing:
@@ -155,14 +159,22 @@ def main() -> None:
     # ---- copy assets ----
     if assets.exists():
         shutil.rmtree(assets)
+    no_photo = []
     for img in images + [example]:
         info = selected[img]
         (assets / img).mkdir(parents=True)
-        shutil.copy2(src / info["class_id"] / img / "input.png", assets / img / "input.png")
+        photo_src = src / info["class_id"] / img / "input.png"
+        if photo_src.exists():
+            shutil.copy2(photo_src, assets / img / "input.png")
+        else:
+            no_photo.append(img)
         for m in MODELS:
             (assets / img / m).mkdir()
             for x in METHODS:
-                shutil.copy2(heatmap_path(src, info, img, m, x), assets / img / m / f"{x}.png")
+                shutil.copy2(heatmap_path(src, info, img, m, x, args.method_suffix), assets / img / m / f"{x}.png")
+    if no_photo:
+        print(f"note: {len(no_photo)}/{len(images) + 1} images have no input.png (original photo). "
+              "Set showPhoto: false in config.js, or the UI will show a broken image there.")
 
     # ---- hidden attention checks: real Grad-CAM vs. pixel-shuffled copy ----
     catch_dir = assets / "catch"
@@ -172,7 +184,7 @@ def main() -> None:
     for m in MODELS:
         for img in rng.sample(images, args.catch_per_model):
             info = selected[img]
-            arr = np.array(Image.open(heatmap_path(src, info, img, m, "gradcam")))
+            arr = np.array(Image.open(heatmap_path(src, info, img, m, "gradcam", args.method_suffix)))
             flat = arr.reshape(-1, arr.shape[-1])
             scr = flat[nprng.permutation(len(flat))].reshape(arr.shape)
             name = f"{img[-8:]}_{m}"
