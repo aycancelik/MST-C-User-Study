@@ -36,9 +36,10 @@ window.STUDY_CONFIG = {
   // ---- Prolific (used only when the URL carries PROLIFIC_PID) ----
   // Study URL on Prolific:  https://<you>.github.io/MST-C-User-Study/mstc_pilot_ui/?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}
   prolific: {
-    completionUrl: "",       // e.g. "https://app.prolific.com/submissions/complete?cc=C1A2B3C4"
-    completionCode: "",      // shown as a fallback on the end screen
-    failedChecksUrl: "",     // optional 2nd completion path for sessions failing >= failThreshold checks
+    completionUrl: "https://app.prolific.com/submissions/complete?cc=C4ANU3V8",
+    completionCode: "C4ANU3V8", // shown as a fallback on the end screen
+    failedChecksUrl: "https://app.prolific.com/submissions/complete?cc=C19PM77J", // sessions failing >= failThreshold checks
+    failedChecksCode: "C19PM77J", // fallback code shown for THAT path -- must not fall back to completionCode
     failThreshold: 2,
     redirectDelayMs: 4000,
   },

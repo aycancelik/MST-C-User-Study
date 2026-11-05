@@ -471,8 +471,10 @@
 
     if (prolific) {
       const P = CFG.prolific || {};
-      const url = sum.attention_failed >= (P.failThreshold ?? 2) && P.failedChecksUrl ? P.failedChecksUrl : P.completionUrl;
-      if (P.completionCode) { $("#completion-code").textContent = P.completionCode; $("#code-box").hidden = false; }
+      const failed = sum.attention_failed >= (P.failThreshold ?? 2) && P.failedChecksUrl;
+      const url = failed ? P.failedChecksUrl : P.completionUrl;
+      const code = failed ? (P.failedChecksCode || P.completionCode) : P.completionCode;
+      if (code) { $("#completion-code").textContent = code; $("#code-box").hidden = false; }
       if (url) {
         const a = $("#btn-prolific"); a.href = url; a.hidden = false;
         if (saved || !hasUpload) setTimeout(() => { if (!DEMO) location.href = url; }, P.redirectDelayMs ?? 4000);
