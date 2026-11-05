@@ -30,7 +30,7 @@ index.html  style.css  app.js     UI + logging + export
 session.js                        per-participant session builder (also runs in Node)
 config.js                         all knobs: counts, upload, Prolific
 trials.json  assets/              stimulus pool (built by scripts/build_pilot_trials.py)
-scripts/build_pilot_trials.py     rebuild the pool from the heatmap folder + MST-C CSV
+scripts/build_pilot_trials.py     rebuild the pool from the real study's selected_scores.csv + heatmap folders
 scripts/simulate_balance.js       check balance over many simulated participants
 analysis/analyze_pilot.py         fatigue curve + method win rates + MST-C agreement
 ```
@@ -107,19 +107,34 @@ paid Prolific participants will tire earlier than motivated colleagues.
 ## Rebuilding the stimuli
 
 ```bash
-python scripts/build_pilot_trials.py --src ~/Documents/n03000134 \
-  --mstc ~/Documents/Projects/mst_c_user_study/outputs/mstc_imagenet_val_results.csv
+python scripts/build_pilot_trials.py \
+  --selected ../outputs/positive_study/selected_scores.csv \
+  --src ~/Downloads
 node scripts/simulate_balance.js 300
 ```
 
-Current pool: 37 images (1 more is held out as the practice/intro example) × 3 models × 10 method pairs = 1110
-pairs, all with MST-C scores; tercile cuts |ΔMST-C| = 23.9 / 58.6.
+`--selected` is the `selected_scores.csv` that `scripts/positive_study.py`'s `prepare_study()` writes for the
+real study (one image per class, 24 by default). `--src` is a folder with one subfolder per class_id, each
+holding that class's downloaded heatmaps (same layout as a single ImageNet class folder, just one level up).
+If you don't have all the classes downloaded yet, add `--allow-partial` to build the pool from whichever ones
+are already there; the script prints which are missing.
+
+Pool size = (images - 1 held out for practice) × 3 models × 10 method pairs, all with real MST-C scores from
+the study's own cleaning pipeline. Current pool (all 24 selected images, none missing): 23 images × 3 models
+× 10 method pairs = 690 pairs; tercile cuts |ΔMST-C| = 43.8 / 131.4.
+
+Heatmap dumps that name files `gradcam_relu.png` etc. (not plain `gradcam.png`) need `--method-suffix _relu`,
+which is already the default; pass `--method-suffix ""` if yours are unsuffixed. If a dump has no `input.png`
+(the original photo) for some or all images, the script still builds the pool -- it just prints how many
+are missing a photo and reminds you to set `showPhoto: false` in `config.js` (already the default here,
+since `selected_imagenet` has no photos at all).
 
 ## Notes
 
 * |ΔMST-C| bins are strongly tied to the method pair (e.g. LRP-ε vs LRP-ε+ is almost always "small"), so the bins
   are balanced over the whole session, not inside each model × pair cell.
 * Each photo appears 4–5 times (with different heatmap pairs); the instructions say so.
-* The pilot uses the 5 methods and 3 models that exist in the heatmap folder, not the 6 methods / 2 models listed in
-  the `study_assignment` pipeline. Align these before the main study.
+* The pilot now sources its images straight from the real study's `selected_scores.csv`, so its 5 methods and
+  3 models already match the `study_assignment` pipeline (the 6 methods / 2 models in some older docs describe
+  the original hand-picked dataset, not this one).
 * The repo is public, so heatmaps and code are public too.
