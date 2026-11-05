@@ -192,7 +192,7 @@
   function initInstructions() {
     const ex = DATA.practice && DATA.practice[0];
     if (ex) $("#mock-trial").innerHTML = `
-      <img class="mock-photo" src="${photo(ex.image)}" alt="example photo">
+      ${CFG.showPhoto === false ? "" : `<img class="mock-photo" src="${photo(ex.image)}" alt="example photo">`}
       <div class="mock-pair"><img src="assets/${ex.image}/${ex.model}/${ex.method_a}.png" alt="example heatmap"><img src="assets/${ex.image}/${ex.model}/${ex.method_b}.png" alt="example heatmap"></div>`;
     $("#i-ntrials").textContent = N();
     $("#i-quality").hidden = !CFG.mentionQualityChecks;
