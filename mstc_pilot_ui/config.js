@@ -28,7 +28,7 @@ window.STUDY_CONFIG = {
   //  (1) uploaded, if an endpoint is set below, and (2) offered as downloads (.json + 2 x .csv).
   upload: {
     datapipeExperimentId: "", // DataPipe (pipe.jspsych.org) experiment ID -> files land in your OSF project
-    url: "",                  // OR any endpoint that accepts POST {filename, data} JSON per file
+    url: "https://mstc-pilot-default-rtdb.europe-west1.firebasedatabase.app/submissions.json", // Firebase Realtime DB (test mode)
   },
   autoDownload: true,         // pilot: start the 3 downloads automatically on the end screen when nothing was uploaded
                               // (never for Prolific participants; the buttons are always there as a fallback)
