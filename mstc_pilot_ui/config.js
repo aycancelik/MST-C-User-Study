@@ -11,7 +11,7 @@ window.STUDY_CONFIG = {
   attentionChecks: 10,   // hidden checks: real Grad-CAM vs pixel-shuffled copy (one per tenth of the session)
   probeEvery: 43,        // "how focused are you?" check-in after every N screens (null = off); one more at the end
   breakAt: null,         // e.g. 0.5 for a break halfway. OFF by default: a break resets fatigue and blurs the curve
-  showPhoto: false,      // original photo above the two heatmaps -- off: selected_imagenet has no input.png
+  showPhoto: true,       // original photo above the two heatmaps -- on now that all 24 images have input.png
   overlay: false,        // heatmaps alpha-blended on the photo instead of plain maps
   overlayOpacity: 0.6,
   advanceDelayMs: 250,   // how long the clicked card stays highlighted
