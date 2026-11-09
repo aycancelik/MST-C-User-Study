@@ -121,13 +121,13 @@ are already there; the script prints which are missing.
 
 Pool size = (images - 1 held out for practice) × 3 models × 10 method pairs, all with real MST-C scores from
 the study's own cleaning pipeline. Current pool (all 24 selected images, none missing): 23 images × 3 models
-× 10 method pairs = 690 pairs; tercile cuts |ΔMST-C| = 43.8 / 131.4.
+× 10 method pairs = 690 pairs; tercile cuts |ΔMST-C| = 43.8 / 131.4. All 24 images now have their original
+photo too (`input.png`), so `showPhoto: true` in `config.js`.
 
 Heatmap dumps that name files `gradcam_relu.png` etc. (not plain `gradcam.png`) need `--method-suffix _relu`,
 which is already the default; pass `--method-suffix ""` if yours are unsuffixed. If a dump has no `input.png`
 (the original photo) for some or all images, the script still builds the pool -- it just prints how many
-are missing a photo and reminds you to set `showPhoto: false` in `config.js` (already the default here,
-since `selected_imagenet` has no photos at all).
+are missing a photo and reminds you to set `showPhoto: false` in `config.js`.
 
 ## Notes
 
