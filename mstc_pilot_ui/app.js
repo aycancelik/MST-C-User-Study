@@ -1,7 +1,7 @@
 /* MST-C pilot: static front end (GitHub Pages friendly).
  *
- * Flow: welcome/consent -> background (expertise) -> instructions -> 2 practice pairs
- *       -> main sequence (150 pairs + 12 repeats + 10 hidden checks, focus check-ins) -> debrief -> save
+ * Flow: welcome/consent -> instructions -> 2 practice pairs
+ *       -> main sequence (150 pairs + 12 repeats + 10 hidden checks, focus check-ins) -> debrief -> background -> save
  *
  * Session content comes from session.js (seeded by participant ID, so a reload rebuilds the same session).
  * Progress is autosaved to localStorage after every click; a reload resumes where the person left off.
@@ -58,7 +58,7 @@
   window.addEventListener("focus", () => logEvent("window_focus"));
   let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => logEvent("resize", { viewport: viewport() }), 400); });
   window.addEventListener("beforeunload", (e) => {
-    if (S && ["main", "probe", "practice"].includes(S.phase) && !DEMO) { e.preventDefault(); e.returnValue = ""; }
+    if (S && ["main", "practice"].includes(S.phase) && !DEMO) { e.preventDefault(); e.returnValue = ""; }
   });
 
   // ---------- form widgets ----------
@@ -146,9 +146,9 @@
         study_id: Q.get("STUDY_ID") || "", session_id: Q.get("SESSION_ID") || "",
         mode: source === "prolific" ? "prolific" : "pilot", demo: DEMO,
         started: nowIso(), consent_at: nowIso(), finished: null,
-        phase: "bg", idx: 0, pidx: 0, probeAfter: null, breakShown: false,
+        phase: "instr", idx: 0, pidx: 0, breakShown: false,
         n_screens: SESS.seq.length, balance: SESS.balance,
-        responses: [], practice: [], probes: [], breaks: [], events: [], timings: {},
+        responses: [], practice: [], breaks: [], events: [], timings: {},
         background: null, debrief: null, upload: null,
         env: {
           user_agent: navigator.userAgent, platform: navigator.platform || "", language: navigator.language,
@@ -168,24 +168,23 @@
 
   function route() {
     switch (S.phase) {
-      case "bg": return CFG.askBackground === false ? (setPhase("instr"), route()) : show("s-bg");
       case "instr": return initInstructions();
       case "practice": return S.pidx < SESS.practice.length ? runTrial() : (setPhase("practice_done"), route());
       case "practice_done": $("#pd-n").textContent = N(); return show("s-practice-done");
       case "main": return runTrial();
-      case "probe": return showProbe();
       case "break": return showBreak();
-      case "post": return CFG.askDebrief === false ? (setPhase("end"), finish()) : show("s-post");
+      case "post": return CFG.askDebrief === false ? (setPhase("bg"), route()) : show("s-post");
+      case "bg": return CFG.askBackground === false ? (setPhase("end"), finish()) : show("s-bg");
       case "end": return finish();
     }
   }
 
-  // ---------- background ----------
+  // ---------- background (asked at the end) ----------
   $("#f-bg").addEventListener("submit", (e) => {
     e.preventDefault();
-    const v = checkForm(e.target, ["role", "ml_years", "xai_frequency", "xai_expertise", "colour_vision"], $("#bg-err"));
+    const v = checkForm(e.target, ["age_range", "education", "ai_familiarity", "ai_decision_familiarity", "colour_vision"], $("#bg-err"));
     if (!v) return;
-    S.background = v; setPhase("instr"); route();
+    S.background = v; setPhase("end"); finish();
   });
 
   // ---------- instructions (paged) ----------
@@ -275,35 +274,14 @@
     setTimeout(next, CFG.advanceDelayMs ?? 250);
   }
 
-  // what comes after a main-sequence click: focus check-in, optional break, next trial or debrief
+  // what comes after a main-sequence click: optional break, next trial or debrief
   function afterMain() {
     cur = null;
     const done = S.idx >= N();
-    const pe = CFG.probeEvery;
-    if (pe && (done || S.idx % pe === 0) && !S.probes.some((p) => p.after_screen === S.idx)) {
-      S.probeAfter = S.idx; setPhase("probe"); return showProbe();
-    }
     if (CFG.breakAt && !S.breakShown && S.idx === Math.round(N() * CFG.breakAt)) { setPhase("break"); return showBreak(); }
     if (done) { S.timings.main_end = S.timings.main_end || nowIso(); setPhase("post"); return route(); }
     S.phase = "main"; save(); runTrial();
   }
-
-  // ---------- focus probe ----------
-  let probeT0 = 0;
-  function showProbe() {
-    $("#probe-btns").innerHTML = [1, 2, 3, 4, 5].map((v) => `<button data-v="${v}">${v}</button>`).join("");
-    probeT0 = performance.now();
-    show("s-probe");
-  }
-  function answerProbe(v, auto) {
-    if (S.phase !== "probe") return;
-    S.probes.push({ after_screen: S.probeAfter, value: v, rt_ms: auto ? 1200 : Math.round(performance.now() - probeT0), at: nowIso(), final: S.probeAfter >= N() });
-    S.probeAfter = null; S.phase = "main"; save();
-    const b = $(`#probe-btns [data-v="${v}"]`); if (b) b.classList.add("selected");
-    if (auto) return afterMain();
-    setTimeout(afterMain, 200);
-  }
-  $("#probe-btns").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) answerProbe(+b.dataset.v); });
 
   // ---------- optional break ----------
   let breakT0 = 0;
@@ -316,11 +294,11 @@
   // ---------- debrief ----------
   $("#f-post").addEventListener("submit", (e) => {
     e.preventDefault();
-    const req = ["cues", "recognised_methods", ...METHODS_FAM.map(([k]) => "fam_" + k), "fatigue_onset", "length_rating", "difficulty"];
+    const req = ["cues", "strategy", "recognised_methods", ...METHODS_FAM.map(([k]) => "fam_" + k), "fatigue_onset", "length_rating", "difficulty"];
     if (!$("#fs-influence").hidden) req.push("recognition_influence");
     const v = checkForm(e.target, req, $("#post-err"));
     if (!v) return;
-    S.debrief = v; setPhase("end"); finish();
+    S.debrief = v; setPhase("bg"); route();
   });
 
   // ---------- export ----------
@@ -366,7 +344,6 @@
       chose_higher_mstc_rate: hm.length ? +(hm.filter((r) => r.chose_higher_mstc).length / hm.length).toFixed(3) : null,
       median_rt_ms: median(main.map((r) => r.rt_ms)),
       median_rt_ms_third1: median(third(0).map((r) => r.rt_ms)), median_rt_ms_third2: median(third(1).map((r) => r.rt_ms)), median_rt_ms_third3: median(third(2).map((r) => r.rt_ms)),
-      focus_probe_values: S.probes.map((p) => p.value).join(";"),
       n_tab_hidden: S.events.filter((e) => e.type === "tab_hidden").length,
       total_hidden_s: Math.round(rows.reduce((a, r) => a + (r.hidden_ms || 0), 0) / 100) / 10,
       n_resumes: S.events.filter((e) => e.type === "resume").length,
@@ -381,7 +358,6 @@
     Object.entries(S.env).forEach(([k, v]) => (o["env_" + k] = v));
     Object.entries(S.background || {}).forEach(([k, v]) => (o["bg_" + k] = v));
     Object.entries(S.debrief || {}).forEach(([k, v]) => (o["post_" + k] = v));
-    S.probes.forEach((p, i) => { o[`probe${i + 1}_after_screen`] = p.after_screen; o[`probe${i + 1}_value`] = p.value; o[`probe${i + 1}_rt_ms`] = p.rt_ms; });
     Object.entries(sum).forEach(([k, v]) => (o["sum_" + k] = v));
     return o;
   }
@@ -399,7 +375,7 @@
     const json = {
       meta: { app_version: S.app_version, study: S.study, participant_id: S.pid, id_source: S.id_source, study_id: S.study_id,
         session_id: S.session_id, mode: S.mode, demo: S.demo, started: S.started, consent_at: S.consent_at, finished: S.finished },
-      summary: sum, env: S.env, background: S.background, debrief: S.debrief, probes: S.probes, breaks: S.breaks,
+      summary: sum, env: S.env, background: S.background, debrief: S.debrief, breaks: S.breaks,
       timings: S.timings, events: S.events, balance: S.balance, config: S.config, data_meta: S.data_meta,
       sequence: SESS.seq.map(({ Lsrc, Rsrc, ...t }) => t),
       trials: rows,
@@ -496,8 +472,8 @@
       ${tab.map((r) => `<tr><td>${r.m}</td><td class="num">${r.w}</td><td class="num">${r.n}</td><td><span class="bar" style="width:${Math.round(r.p * 120)}px"></span>${(r.p * 100).toFixed(0)}%</td></tr>`).join("")}
       </table>
       <p class="muted">Attention checks ${s.attention_passed}/${s.attention_total} · repeat consistency ${s.repeat_consistency ?? "–"} · picked left ${s.left_choice_rate ?? "–"} ·
-      chose higher MST-C ${s.chose_higher_mstc_rate ?? "–"} · median RT by third: ${s.median_rt_ms_third1} / ${s.median_rt_ms_third2} / ${s.median_rt_ms_third3} ms ·
-      focus probes ${s.focus_probe_values || "–"}${s.simulated ? " · (auto-answered)" : ""}</p>`;
+      chose higher MST-C ${s.chose_higher_mstc_rate ?? "–"} · median RT by third: ${s.median_rt_ms_third1} / ${s.median_rt_ms_third2} / ${s.median_rt_ms_third3} ms
+      ${s.simulated ? " · (auto-answered)" : ""}</p>`;
   }
 
   // ---------- overlay + demo bar ----------
@@ -513,7 +489,7 @@
       : t.kind === "attention" ? `<span><b class="catch-flag">HIDDEN ATTENTION CHECK</b> · correct = ${t.target === "L" ? "left" : "right"}</span>`
       : `<span><b>${t.kind}</b> ${t.uid}${t.repeat_of ? ` (of ${t.repeat_of}, lag ${t.repeat_lag})` : ""} · ${t.image.slice(-8)} · <b>${t.model}</b>${t.bin ? ` · ${t.bin} |Δ|=${t.abs_delta_mstc.toFixed(1)}` : ""}</span>`;
     const forms = S && ["bg", "post"].includes(S.phase);
-    const running = S && ["main", "probe", "practice", "practice_done", "break"].includes(S.phase);
+    const running = S && ["main", "practice", "practice_done", "break"].includes(S.phase);
     bar.innerHTML = `<span class="pill">DEMO</span><span>pid <b>${S ? S.pid : "–"}</b></span>${info}<span class="spacer"></span>
       <label><input type="checkbox" id="d-ov" ${CFG.overlay ? "checked" : ""}> overlay</label>
       ${forms ? `<button id="d-form">auto-fill form</button>` : ""}
@@ -531,6 +507,7 @@
     form.querySelectorAll("input[type=radio], input[type=checkbox]").forEach((i) => (groups[i.name] = groups[i.name] || []).push(i));
     Object.values(groups).forEach((g) => (g[Math.floor(Math.random() * g.length)].checked = true));
     form.querySelectorAll("select").forEach((s) => (s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1))));
+    form.querySelectorAll("textarea[required]").forEach((t) => (t.value = t.value || "(auto-filled for demo)"));
     $("#fs-influence").hidden = false;
     form.requestSubmit();
   }
@@ -538,7 +515,6 @@
   function auto(k) {
     for (let i = 0; i < k; i++) {
       if (S.phase === "practice_done") { $("#btn-go").click(); continue; }
-      if (S.phase === "probe") { answerProbe(Math.max(1, 5 - Math.floor(S.idx / 50) - (Math.random() < 0.3)), true); continue; }
       if (S.phase === "break") { $("#btn-resume").click(); continue; }
       if (!["main", "practice"].includes(S.phase) || !cur) break;
       const t = cur.t, p = S.idx / N();
@@ -556,7 +532,7 @@
     if (!$("#s-trial").hidden) {
       if (e.key === "ArrowLeft") { e.preventDefault(); choose("L", "key"); }
       else if (e.key === "ArrowRight") { e.preventDefault(); choose("R", "key"); }
-    } else if (!$("#s-probe").hidden && /^[1-5]$/.test(e.key)) answerProbe(+e.key);
+    }
   });
 
   // ---------- boot ----------
