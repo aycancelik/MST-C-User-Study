@@ -1,30 +1,30 @@
-# MST-C pilot: expert view + fatigue test drive
+# MST-C pilot: general-audience legibility test drive
 
-Static web app (GitHub Pages friendly) for the in-house pilot with XAI colleagues. Same look and task as
-`mstc_mock_ui/`: photo on top, two heatmaps, click the **more legible** one. It answers two questions:
+Static web app (GitHub Pages friendly). Same look and task as `mstc_mock_ui/`: photo on top, two heatmaps,
+click the **more legible** one. It answers one question:
 
-1. **How do people judge the heatmaps, without being taught how to read them?** Every choice is stored with both
-   methods and both real MST-C scores (from `mst_c_user_study/outputs/mstc_imagenet_val_results.csv`). The
-   instructions deliberately don't explain the colour coding or mention that the heatmaps come from an AI model's
-   decision, so the task stays about raw legibility, not a lesson in reading saliency maps. A debrief (which cues
-   made a map legible, a required free-text on how/why they decided, method familiarity, whether they recognised
-   methods) and a general-audience background questionnaire (age range, education, AI familiarity, colour vision)
-   are both asked **at the end**, after the task, not before.
-2. **When does fatigue start?** One deliberately long session; quality is tracked against screen position.
+**How do people judge the heatmaps, without being taught how to read them?** Every choice is stored with both
+methods and both real MST-C scores (from `mst_c_user_study/outputs/mstc_imagenet_val_results.csv`). The
+instructions deliberately don't explain the colour coding or mention that the heatmaps come from an AI model's
+decision, so the task stays about raw legibility, not a lesson in reading saliency maps. A debrief (which cues
+made a map legible, a required free-text on how/why they decided, method familiarity, whether they recognised
+methods) and a general-audience background questionnaire (age range, education, AI familiarity, colour vision)
+are both asked **at the end**, after the task, not before.
+
+Quality is controlled with hidden attention checks rather than a mid-task "how focused do you feel?" probe, so
+the task itself never breaks character to ask something unrelated to legibility.
 
 | per person | count | what it measures |
 |---|---|---|
-| main pairs | 150 | the data: 5 per model × method-pair cell, |ΔMST-C| bins 50/50/50, photo spread 4–5× each |
-| repeated pairs | 12 | same pair again, **sides swapped**, 30–60 trials later → self-consistency vs. position ⭐ |
-| hidden attention checks | 10 | real Grad-CAM vs. pixel-shuffled copy, one per tenth of the session, real side 5/5 |
-| focus check-ins | 4 | "how focused are you?" 1–5, after screens 43 / 86 / 129 / 172 |
+| main pairs | 20 | 40 heatmap images shown, |ΔMST-C| bins as close to even as the pool allows |
+| hidden attention checks | 10 | real Grad-CAM vs. pixel-shuffled copy, the main quality signal |
 | practice | 2 | example image that is not in the pool, excluded from analysis |
-| **total** | **172 screens** | ≈ 20–25 min |
+| **total** | **32 screens** | ≈ 10 min |
 
 Per trial we log: response time (from the moment photo + both heatmaps are decoded), mouse vs. keyboard, image load
 time, time the tab was hidden, window blurs, viewport. Order is shuffled per person (seeded by the participant code),
-no photo twice in a row, left/right balanced within each third. **No break by default**, because a break resets
-fatigue (`breakAt` in `config.js` if you want one anyway; its duration is logged).
+no photo twice in a row, left/right balanced within each third. No break by default, since the session is short
+(`breakAt` in `config.js` if you want one anyway; its duration is logged).
 
 ## Files
 
@@ -90,8 +90,8 @@ Per session: `mstc_pilot_<code>_<start>.json`, `…_trials.csv`, `…_participan
 `hidden_ms`, `blur_count`, `viewport`, `simulated`.
 
 **participant.csv**, one row: IDs, timings, device (`env_*`), background (`bg_*`), debrief (`post_*`),
-focus probes (`probeK_after_screen/value/rt_ms`) and a summary (`sum_*`: attention passed/failed, `valid`,
-repeat consistency, left-choice rate, median RT per third, tab-hidden count, durations).
+and a summary (`sum_*`: attention passed/failed, `valid`, repeat consistency, left-choice rate, median RT per
+third, tab-hidden count, durations).
 
 **.json** has everything above plus the planned sequence, all interaction events, the balance report and the config.
 

@@ -4,13 +4,12 @@ window.STUDY_CONFIG = {
   studyName: "MST-C heatmap legibility (pilot)",
   appVersion: "pilot-1.0",
 
-  // ---- session design (fatigue pilot) ----
-  nMain: 150,            // distinct pairs per person (multiple of 3; 5 per model x method-pair cell)
-  nRepeats: 12,          // pairs shown a 2nd time with sides swapped -> self-consistency vs. position
-  repeatLag: [30, 60],   // repeat comes this many main trials after its original
-  attentionChecks: 10,   // hidden checks: real Grad-CAM vs pixel-shuffled copy (one per tenth of the session)
-  probeEvery: 43,        // "how focused are you?" check-in after every N screens (null = off); one more at the end
-  breakAt: null,         // e.g. 0.5 for a break halfway. OFF by default: a break resets fatigue and blurs the curve
+  // ---- session design ----
+  nMain: 20,             // distinct pairs per person -> 40 heatmap images shown in the main task
+  nRepeats: 0,           // off: repeatLag below needs far more main trials than 20 to have room to place a repeat
+  repeatLag: [30, 60],   // repeat comes this many main trials after its original (unused while nRepeats is 0)
+  attentionChecks: 10,   // hidden checks: real Grad-CAM vs pixel-shuffled copy -- the main quality signal now
+  breakAt: null,         // e.g. 0.5 for a break halfway
   showPhoto: true,       // original photo above the two heatmaps -- on now that all 24 images have input.png
   overlay: false,        // heatmaps alpha-blended on the photo instead of plain maps
   overlayOpacity: 0.6,
