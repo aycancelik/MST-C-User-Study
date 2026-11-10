@@ -1,7 +1,7 @@
 /* MST-C pilot: static front end (GitHub Pages friendly).
  *
- * Flow: welcome/consent -> background (expertise) -> instructions -> 2 practice pairs
- *       -> main sequence (150 pairs + 12 repeats + 10 hidden checks, focus check-ins) -> debrief -> save
+ * Flow: welcome/consent -> instructions -> 2 practice pairs
+ *       -> main sequence (150 pairs + 12 repeats + 10 hidden checks, focus check-ins) -> debrief -> background -> save
  *
  * Session content comes from session.js (seeded by participant ID, so a reload rebuilds the same session).
  * Progress is autosaved to localStorage after every click; a reload resumes where the person left off.
@@ -146,7 +146,7 @@
         study_id: Q.get("STUDY_ID") || "", session_id: Q.get("SESSION_ID") || "",
         mode: source === "prolific" ? "prolific" : "pilot", demo: DEMO,
         started: nowIso(), consent_at: nowIso(), finished: null,
-        phase: "bg", idx: 0, pidx: 0, probeAfter: null, breakShown: false,
+        phase: "instr", idx: 0, pidx: 0, probeAfter: null, breakShown: false,
         n_screens: SESS.seq.length, balance: SESS.balance,
         responses: [], practice: [], probes: [], breaks: [], events: [], timings: {},
         background: null, debrief: null, upload: null,
@@ -168,24 +168,24 @@
 
   function route() {
     switch (S.phase) {
-      case "bg": return CFG.askBackground === false ? (setPhase("instr"), route()) : show("s-bg");
       case "instr": return initInstructions();
       case "practice": return S.pidx < SESS.practice.length ? runTrial() : (setPhase("practice_done"), route());
       case "practice_done": $("#pd-n").textContent = N(); return show("s-practice-done");
       case "main": return runTrial();
       case "probe": return showProbe();
       case "break": return showBreak();
-      case "post": return CFG.askDebrief === false ? (setPhase("end"), finish()) : show("s-post");
+      case "post": return CFG.askDebrief === false ? (setPhase("bg"), route()) : show("s-post");
+      case "bg": return CFG.askBackground === false ? (setPhase("end"), finish()) : show("s-bg");
       case "end": return finish();
     }
   }
 
-  // ---------- background ----------
+  // ---------- background (asked at the end) ----------
   $("#f-bg").addEventListener("submit", (e) => {
     e.preventDefault();
-    const v = checkForm(e.target, ["role", "ml_years", "xai_frequency", "xai_expertise", "colour_vision"], $("#bg-err"));
+    const v = checkForm(e.target, ["age_range", "education", "ai_familiarity", "ai_decision_familiarity", "colour_vision"], $("#bg-err"));
     if (!v) return;
-    S.background = v; setPhase("instr"); route();
+    S.background = v; setPhase("end"); finish();
   });
 
   // ---------- instructions (paged) ----------
@@ -316,11 +316,11 @@
   // ---------- debrief ----------
   $("#f-post").addEventListener("submit", (e) => {
     e.preventDefault();
-    const req = ["cues", "recognised_methods", ...METHODS_FAM.map(([k]) => "fam_" + k), "fatigue_onset", "length_rating", "difficulty"];
+    const req = ["cues", "strategy", "recognised_methods", ...METHODS_FAM.map(([k]) => "fam_" + k), "fatigue_onset", "length_rating", "difficulty"];
     if (!$("#fs-influence").hidden) req.push("recognition_influence");
     const v = checkForm(e.target, req, $("#post-err"));
     if (!v) return;
-    S.debrief = v; setPhase("end"); finish();
+    S.debrief = v; setPhase("bg"); route();
   });
 
   // ---------- export ----------
@@ -531,6 +531,7 @@
     form.querySelectorAll("input[type=radio], input[type=checkbox]").forEach((i) => (groups[i.name] = groups[i.name] || []).push(i));
     Object.values(groups).forEach((g) => (g[Math.floor(Math.random() * g.length)].checked = true));
     form.querySelectorAll("select").forEach((s) => (s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1))));
+    form.querySelectorAll("textarea[required]").forEach((t) => (t.value = t.value || "(auto-filled for demo)"));
     $("#fs-influence").hidden = false;
     form.requestSubmit();
   }

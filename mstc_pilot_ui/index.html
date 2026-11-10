@@ -18,7 +18,7 @@
     <div class="narrow">
       <p class="eyebrow">Research study</p>
       <h1>Which heatmap is easier to read?</h1>
-      <p class="lead">AI models can show which parts of a photo they focused on, as a coloured "heatmap". For each photo you'll see two heatmaps side by side. Just click the one you find <strong>more legible</strong>, meaning clearer and easier to read.</p>
+      <p class="lead">For each photo you'll see two heatmaps side by side: colour overlays that highlight different parts of the photo. Just click the one you find <strong>more legible</strong>, meaning clearer and easier to read.</p>
       <ul class="facts">
         <li><span>⏱</span> about <b id="w-minutes">20</b> minutes</li>
         <li><span>🖼</span> <b id="w-ntrials">172</b> short comparisons</li>
@@ -47,67 +47,21 @@
     </div>
   </section>
 
-  <!-- BACKGROUND (expertise) -->
-  <section class="screen" id="s-bg" hidden>
-    <form class="narrow" id="f-bg" novalidate>
-      <p class="eyebrow">About you · 1 minute</p>
-      <h1>A bit about your background</h1>
-
-      <fieldset><legend>What best describes your current role?</legend>
-        <select name="role" required>
-          <option value="">Choose…</option>
-          <option>MSc / BSc student</option><option>PhD student</option><option>Postdoc</option>
-          <option>Faculty / PI</option><option>Research scientist / engineer</option><option>Other</option>
-        </select>
-      </fieldset>
-
-      <fieldset><legend>How many years have you worked with machine learning?</legend>
-        <div class="opts" data-name="ml_years" data-options="none|&lt; 1|1–2|3–5|6–10|&gt; 10"></div>
-      </fieldset>
-
-      <fieldset><legend>How often do you work with explanation / attribution methods (heatmaps, saliency, relevance maps)?</legend>
-        <div class="opts" data-name="xai_frequency" data-options="Never|Only a few times|Monthly|Weekly|Daily"></div>
-      </fieldset>
-
-      <fieldset><legend>How would you rate your own expertise in explainable AI?</legend>
-        <div class="likert" data-name="xai_expertise" data-lo="none" data-hi="expert"></div>
-      </fieldset>
-
-      <fieldset><legend>Do you have a known colour-vision deficiency?</legend>
-        <div class="opts" data-name="colour_vision" data-options="No|Yes|Not sure|Prefer not to say"></div>
-      </fieldset>
-
-      <p class="form-err" id="bg-err" hidden>Please answer every question.</p>
-      <button class="btn primary" type="submit">Continue</button>
-    </form>
-  </section>
-
   <!-- INSTRUCTIONS: all task wording lives here, trials themselves are wordless -->
   <section class="screen" id="s-instr" hidden>
     <div class="narrow">
       <div class="steps" id="steps"></div>
 
       <div class="page" data-page="0">
-        <p class="eyebrow">Step 1 of 4 · What you'll see</p>
+        <p class="eyebrow">Step 1 of 3 · What you'll see</p>
         <h1>A photo and two heatmaps</h1>
-        <p>On every page you'll see a <b>photo</b> at the top. Below it are <b>two heatmaps</b> of that same photo, made by an AI model. Each one highlights the parts of the photo the model paid attention to.</p>
+        <p>On every page you'll see a <b>photo</b> at the top. Below it are <b>two heatmaps</b> of that same photo, each highlighting certain parts of it in colour.</p>
         <div class="mock" id="mock-trial"></div>
         <p class="muted">Every page looks like this. Only the photo and the heatmaps change.</p>
       </div>
 
       <div class="page" data-page="1">
-        <p class="eyebrow">Step 2 of 4 · Reading a heatmap</p>
-        <h1>Colours show where the model looked</h1>
-        <div class="legend-row">
-          <div class="legend-bar"></div>
-          <div class="legend-labels"><span>against</span><span>ignored</span><span>for</span></div>
-        </div>
-        <p>Each heatmap covers the same area as the photo. <b class="red">Red</b> and <b class="blue">blue</b> mark regions the model reacted to; grey means it ignored them.</p>
-        <p>The heatmaps can look very different from each other, some smooth, some patchy, some speckled or almost empty. That's expected.</p>
-      </div>
-
-      <div class="page" data-page="2">
-        <p class="eyebrow">Step 3 of 4 · Your task</p>
+        <p class="eyebrow">Step 2 of 3 · Your task</p>
         <h1>Click the heatmap you find more legible</h1>
         <p>For each photo, look at the two heatmaps and <b>click the one that is more legible to you</b>, meaning the one that's clearer and easier to read.</p>
         <p>The question won't be repeated on every page. Just keep doing the same thing: one click, and the next pair appears straight away.</p>
@@ -120,8 +74,8 @@
         </ul>
       </div>
 
-      <div class="page" data-page="3">
-        <p class="eyebrow">Step 4 of 4 · Practice</p>
+      <div class="page" data-page="2">
+        <p class="eyebrow">Step 3 of 3 · Practice</p>
         <h1>Two practice pairs first</h1>
         <p>You'll start with <b>2 practice pairs</b> so you can get a feel for it. They don't count.</p>
         <div class="keys">
@@ -199,11 +153,11 @@
       <h1>A few last questions</h1>
 
       <fieldset><legend>What made a heatmap <b>more legible</b> to you? Tick all that apply.</legend>
-        <div class="opts multi" data-name="cues" data-options="Focused on the object (the fence)|Few, compact regions|Smooth, not noisy or speckled|Follows edges / fine structure of the object|Strong contrast, clearly visible|Shows both evidence for and against|Covers the whole object|Looked like a method I trust|Other"></div>
+        <div class="opts multi" data-name="cues" data-options="Focused on the object|Few, compact regions|Smooth, not noisy or speckled|Follows edges / fine structure of the object|Strong contrast, clearly visible|Covers the whole object|Looked like a method I trust|Other"></div>
       </fieldset>
 
-      <fieldset><legend>In a sentence or two: how did you decide? <span class="muted">(optional)</span></legend>
-        <textarea name="strategy" rows="3"></textarea>
+      <fieldset><legend>In your own words: how did you decide which heatmap was more legible? What did you look at, and why?</legend>
+        <textarea name="strategy" rows="4" required></textarea>
       </fieldset>
 
       <fieldset><legend>Did you recognise which explanation method produced a heatmap?</legend>
@@ -235,6 +189,46 @@
       </fieldset>
 
       <p class="form-err" id="post-err" hidden>Please answer the questions without "(optional)".</p>
+      <button class="btn primary" type="submit">Continue</button>
+    </form>
+  </section>
+
+  <!-- BACKGROUND (general audience, asked at the end) -->
+  <section class="screen" id="s-bg" hidden>
+    <form class="narrow" id="f-bg" novalidate>
+      <p class="eyebrow">Last step · 1 minute</p>
+      <h1>A bit about you</h1>
+
+      <fieldset><legend>What is your age range?</legend>
+        <select name="age_range" required>
+          <option value="">Choose…</option>
+          <option>18–24</option><option>25–34</option><option>35–44</option>
+          <option>45–54</option><option>55–64</option><option>65 or older</option>
+        </select>
+      </fieldset>
+
+      <fieldset><legend>What is the highest level of education you've completed?</legend>
+        <select name="education" required>
+          <option value="">Choose…</option>
+          <option>High school or less</option><option>Some college / vocational training</option>
+          <option>Bachelor's degree</option><option>Master's degree</option>
+          <option>Doctoral degree</option><option>Prefer not to say</option>
+        </select>
+      </fieldset>
+
+      <fieldset><legend>How often do you use AI tools in daily life (e.g. chatbots, image generators, recommendation feeds)?</legend>
+        <div class="opts" data-name="ai_familiarity" data-options="Never|Rarely|Sometimes|Often|Daily"></div>
+      </fieldset>
+
+      <fieldset><legend>How familiar are you with how these tools actually make decisions?</legend>
+        <div class="likert" data-name="ai_decision_familiarity" data-lo="not at all familiar" data-hi="very familiar"></div>
+      </fieldset>
+
+      <fieldset><legend>Do you have a known colour-vision deficiency?</legend>
+        <div class="opts" data-name="colour_vision" data-options="No|Yes|Not sure|Prefer not to say"></div>
+      </fieldset>
+
+      <p class="form-err" id="bg-err" hidden>Please answer every question.</p>
       <button class="btn primary" type="submit">Finish</button>
     </form>
   </section>

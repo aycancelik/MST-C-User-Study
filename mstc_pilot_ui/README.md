@@ -3,10 +3,13 @@
 Static web app (GitHub Pages friendly) for the in-house pilot with XAI colleagues. Same look and task as
 `mstc_mock_ui/`: photo on top, two heatmaps, click the **more legible** one. It answers two questions:
 
-1. **How do experts judge the heatmaps?** Every choice is stored with both methods and both real MST-C scores
-   (from `mst_c_user_study/outputs/mstc_imagenet_val_results.csv`), plus a background questionnaire (role, ML years,
-   XAI use, self-rated expertise, colour vision) and a debrief (which cues made a map legible, method familiarity,
-   whether they recognised methods).
+1. **How do people judge the heatmaps, without being taught how to read them?** Every choice is stored with both
+   methods and both real MST-C scores (from `mst_c_user_study/outputs/mstc_imagenet_val_results.csv`). The
+   instructions deliberately don't explain the colour coding or mention that the heatmaps come from an AI model's
+   decision, so the task stays about raw legibility, not a lesson in reading saliency maps. A debrief (which cues
+   made a map legible, a required free-text on how/why they decided, method familiarity, whether they recognised
+   methods) and a general-audience background questionnaire (age range, education, AI familiarity, colour vision)
+   are both asked **at the end**, after the task, not before.
 2. **When does fatigue start?** One deliberately long session; quality is tracked against screen position.
 
 | per person | count | what it measures |
