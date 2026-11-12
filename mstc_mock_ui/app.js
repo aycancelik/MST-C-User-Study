@@ -184,6 +184,8 @@
   const COMP = [
     { id: "task", q: "What do you do on each screen?", hint: "Have another look at the instructions above.",
       opts: ["Click the heatmap I find more legible", "Click the heatmap with the most red", "Click the heatmap that looks most like the photo", "Click the photo"] },
+    { id: "legible", q: "What does \u201cmore legible\u201d mean in this study?", hint: "Have another look at the instructions above.",
+      opts: ["Clearer and easier to read", "More colourful", "Covers more of the photo", "Looks more like the photo"] },
     { id: "right_answer", q: "Is there a right or wrong answer for each pair?", hint: "Have another look at the instructions above.",
       opts: ["No, it's my own impression", "Yes, one heatmap is always the correct one", "Yes, the left heatmap is always correct"] },
     { id: "speed", q: "How long should you spend on each pair?", hint: "Have another look at the instructions above.",
@@ -200,9 +202,9 @@
     $("#instr-block").hidden = !start;
     $("#i-ntrials").textContent = SEQ.length; // participants just see the total
     $("#comp-eyebrow").textContent = start ? "Quick check" : "One last thing";
-    $("#comp-title").textContent = start ? "Before you start, please answer these 4 questions" : "Please answer these once more";
+    $("#comp-title").textContent = start ? `Before you start, please answer these ${COMP.length} questions` : "Please answer these once more";
     $("#comp-lead").textContent = start ? "You can scroll up and re-read the instructions at any time."
-      : "The same 4 questions as at the start. Just answer from memory.";
+      : `The same ${COMP.length} questions as at the start. Just answer from memory.`;
     $("#btn-comp").textContent = start ? "Check my answers" : "Continue";
     const last = start && n === 1 ? S.comp.attempts[0] : null; // after a failed 1st attempt
     $("#comp-msg").hidden = !last;

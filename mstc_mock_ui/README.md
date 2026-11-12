@@ -110,8 +110,8 @@ Flow: welcome → **instructions + comprehension check on one page** → 42 scre
 
 * **Framing:** participants are told it's about how people perceive images. Nothing on any participant screen
   mentions AI or models (checked automatically on every screen). Heatmaps are introduced as "coloured maps of the photo".
-* **Start = gate.** The instructions and 4 multiple-choice questions on the same page (as Prolific asks): what to click,
-  no right answer, how long to spend (a few seconds), judge repeated photos independently. Option order is shuffled
+* **Start = gate.** The instructions and 5 multiple-choice questions on the same page (as Prolific asks): what to click,
+  what "more legible" means (clearer and easier to read), no right answer, how long to spend (a few seconds), judge repeated photos independently. Option order is shuffled
   per participant. 2 attempts; after a wrong first attempt the wrong questions are marked (answers not revealed) and
   the instructions stay right above. Wrong again → screen-out page asking them to return the study on Prolific
   ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
