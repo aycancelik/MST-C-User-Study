@@ -29,6 +29,8 @@ window.STUDY_CONFIG = {
   // Comprehension check (Prolific-compliant): 4 questions after the instructions, 2 attempts,
   // fail twice -> screen-out page; same questions again at the end -> exclusion flag for the analysis.
   comprehension: true,
+  // The 2nd comprehension check (identical page, flag-only) comes right after this many screens.
+  secondCheckAfter: 5,
 
   // Ask age, gender (optional), nationality and occupation / field of study at the very end.
   demographics: true,

@@ -82,7 +82,7 @@ the seed, writes `trials.json` and copies just the needed PNGs into `assets/`.
 ## Output columns (one row per trial)
 
 `pid, study_id, session_id, position, trial_id, kind (main|attention), image, model, left_method,
-right_method, chosen_side, chosen_method, other_method, rt_ms, overlay, attention_target, attention_pass, timestamp`
+right_method, chosen_side, chosen_method, other_method, image_duration_s, shown_at, overlay, attention_target, attention_pass, timestamp` (+ the per-participant summary columns below)
 
 ## Relation to the `study_assignment` pipeline
 
@@ -105,8 +105,8 @@ What to align before wiring:
 
 ## Comprehension check (Prolific-compliant)
 
-Flow: welcome → **instructions + comprehension check on one page** → 42 screens → **same questions again** →
-**demographics** → end.
+Flow: welcome → **check 1** (instructions + questions on one page) → 5 pairs → **check 2** (identical page) →
+remaining pairs (break halfway) → **demographics** → end.
 
 * **Framing:** participants are told it's about how people perceive images. Nothing on any participant screen
   mentions AI or models (checked automatically on every screen). Heatmaps are introduced as "coloured maps of the photo".
@@ -116,35 +116,35 @@ Flow: welcome → **instructions + comprehension check on one page** → 42 scre
   the instructions stay right above. Wrong again → screen-out page asking them to return the study on Prolific
   ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
   Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
-* **End = data-quality flag only.** The **identical page** again (same instructions, questions and rules: two chances,
-  wrong answers marked). But nobody is screened out at the end, since they've already done the work. A question answered
-  wrong on the **first** try both at the start and at the end sets `exclude_comprehension = true`. Exclusion from the
-  **analysis** only; payment is not affected.
+* **Check 2 = data-quality flag only** (`secondCheckAfter: 5` in `config.js`). Right after the 5th screen the **identical
+  page** comes again (same instructions, questions and rules: two chances, wrong answers marked). Nobody is screened out
+  here, since they've already started the task. A question answered wrong on the **first** try in both check 1 and
+  check 2 sets `exclude_comprehension = true`. Exclusion from the **analysis** only; payment is not affected.
 * Correct answers are never marked on screen (also not in demo mode).
 * **Demographics** (last page): age (18–100, required), gender (male / female / non-binary / prefer not to say, optional),
   nationality (required, country suggestions), occupation or field of study (required). Mentioned in the consent text.
-* Saved per participant (JSON `summary` + repeated on every CSV row): `comp_start_attempts`, `comp_start_passed`,
-  `comp_screened_out`, `comp_start_first_wrong`, `comp_end_wrong`, `comp_wrong_both_times`, `exclude_comprehension`,
+* Saved per participant (JSON `summary` + repeated on every CSV row): `check1_attempts`, `check1_passed`,
+  `check1_screened_out`, `check1_first_try_wrong`, `check2_attempts`, `check2_first_try_wrong`, `comp_wrong_both_times`, `exclude_comprehension`,
   `age`, `gender`, `nationality`, `occupation`. Full answers per attempt are in the JSON (`comp`, `compEnd`, `demographics`).
 * Switch parts off with `comprehension: false` / `demographics: false` in `config.js`. Demo view (`?demo=1`) ticks the
   correct options and has "fill correct / fill 1 wrong" buttons to show both paths.
 
-## Timing data
+## Timing data (all in seconds)
 
-Per pair (every CSV row): `image_duration_ms` / `image_duration_s` = how long that image pair was on screen (both heatmaps visible → click); `shown_at` / `timestamp` =
-when the pair appeared / was clicked (ISO time).
+Per pair (every CSV row): `image_duration_s` = how long that image pair was on screen (both heatmaps visible → click),
+with 3 decimals (e.g. `1.284`); `shown_at` / `timestamp` = when the pair appeared / was clicked (ISO time).
 
-Per participant (JSON `summary` + repeated on every CSV row), in seconds:
+Per participant (JSON `summary` + repeated on every CSV row):
 
 | column | from → to |
 |---|---|
 | `duration_total_s` | study page opened → end screen |
-| `duration_instructions_check_s` | instructions + check shown → check passed (all attempts) |
-| `duration_trials_s` | first pair → last click (incl. break) |
+| `duration_instructions_check_s` | check 1 page shown → passed (reading + all attempts) |
+| `duration_trials_s` | first pair → last click (incl. break and check 2) |
 | `duration_break_s` | break screen shown → "Continue" |
-| `duration_trials_excl_break_s` | trials minus break |
-| `duration_end_check_s` | end check shown → submitted |
+| `duration_check2_s` | check 2 page shown → done |
+| `duration_trials_only_s` | pure time on the pairs (trials minus break and check 2) |
 | `duration_demographics_s` | demographics shown → submitted |
-| `image_duration_median_ms`, `_mean_ms`, `_min_ms`, `_max_ms` | over the 39 real pairs |
+| `image_duration_median_s`, `_mean_s`, `_min_s`, `_max_s` | over the 39 real pairs |
 
 All based on timestamps, so they stay correct if someone reloads mid-study.

@@ -243,13 +243,13 @@
       correct, n_wrong: Object.values(correct).filter((v) => !v).length };
     rec.answers_idx = answers; // 0 = correct option
     if (compStage === "end") {
-      // same two chances as at the start, but never screened out here (they've already done the work).
-      // The FIRST end attempt is what counts for the exclusion flag.
+      // CHECK 2 (after the 5th pair): same page, same two chances, but never screened out here
+      // (they've already started the task). Its FIRST attempt counts for the exclusion flag.
       S.compEndAttempts = S.compEndAttempts || [];
       S.compEndAttempts.push(rec);
       S.compEnd = S.compEndAttempts[0];
       if (rec.n_wrong && S.compEndAttempts.length < 2) { save(); return showComp("end"); }
-      S.compEndDoneAt = rec.at; save(); return runTrial(); // -> demographics -> end
+      S.compEndDoneAt = rec.at; save(); return runTrial(); // -> back to the pairs
     }
     S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
     S.comp.attempts.push(rec);
@@ -301,12 +301,12 @@
     const wrongEnd = end ? COMP.filter((c) => !end.correct[c.id]).map((c) => c.id) : [];
     const both = wrongFirst.filter((q) => wrongEnd.includes(q));
     return {
-      comp_start_attempts: S.comp ? S.comp.attempts.length : 0,
-      comp_start_passed: !!(S.comp && S.comp.passed),
-      comp_screened_out: !!(S.comp && S.comp.screened_out),
-      comp_start_first_wrong: wrongFirst.join(";"),
-      comp_end_attempts: (S.compEndAttempts || []).length,
-      comp_end_wrong: wrongEnd.join(";"),
+      check1_attempts: S.comp ? S.comp.attempts.length : 0,
+      check1_passed: !!(S.comp && S.comp.passed),
+      check1_screened_out: !!(S.comp && S.comp.screened_out),
+      check1_first_try_wrong: wrongFirst.join(";"),
+      check2_attempts: (S.compEndAttempts || []).length,
+      check2_first_try_wrong: wrongEnd.join(";"),
       comp_wrong_both_times: both.join(";"),
       exclude_comprehension: both.length > 0,
       attention_checks: att.length,
@@ -324,21 +324,21 @@
   function durations() {
     const t = (iso) => (iso ? new Date(iso).getTime() : NaN);
     const sec = (a, b) => { const d = (t(b) - t(a)) / 1000; return Number.isFinite(d) ? Math.round(d) : ""; };
-    const main = S.responses.filter((r) => r.kind === "main"), rts = main.map((r) => r.image_duration_ms).filter((v) => v != null);
+    const main = S.responses.filter((r) => r.kind === "main"), rts = main.map((r) => r.image_duration_s).filter((v) => v != null);
     const sorted = rts.slice().sort((a, b) => a - b), lastClick = S.responses.length ? S.responses[S.responses.length - 1].timestamp : "";
-    const brk = sec(S.breakStartedAt, S.breakEndedAt), trials = sec(S.trialsStartedAt, lastClick);
+    const brk = sec(S.breakStartedAt, S.breakEndedAt), chk2 = sec(S.compEndShownAt, S.compEndDoneAt), trials = sec(S.trialsStartedAt, lastClick);
     return {
       duration_total_s: sec(S.opened || S.started, S.finished),                       // welcome page -> end screen
       duration_instructions_check_s: sec(S.compShownAt, S.trialsStartedAt),           // reading + start check (all attempts)
-      duration_trials_s: trials,                                                      // first pair -> last click, incl. break
+      duration_trials_s: trials,                                                      // first pair -> last click, incl. break + check 2
       duration_break_s: brk,
-      duration_trials_excl_break_s: trials !== "" ? trials - (brk || 0) : "",
-      duration_end_check_s: sec(S.compEndShownAt, S.compEndDoneAt),
+      duration_check2_s: chk2,
+      duration_trials_only_s: trials !== "" ? trials - (brk || 0) - (chk2 || 0) : "",  // pure time spent on the pairs
       duration_demographics_s: sec(S.demoShownAt, S.demographics && S.demographics.at),
-      image_duration_median_ms: sorted.length ? sorted[Math.floor(sorted.length / 2)] : "",
-      image_duration_mean_ms: rts.length ? Math.round(rts.reduce((a, b) => a + b, 0) / rts.length) : "",
-      image_duration_min_ms: sorted.length ? sorted[0] : "",
-      image_duration_max_ms: sorted.length ? sorted[sorted.length - 1] : "",
+      image_duration_median_s: sorted.length ? sorted[Math.floor(sorted.length / 2)] : "",
+      image_duration_mean_s: rts.length ? +(rts.reduce((a, b) => a + b, 0) / rts.length).toFixed(3) : "",
+      image_duration_min_s: sorted.length ? sorted[0] : "",
+      image_duration_max_s: sorted.length ? sorted[sorted.length - 1] : "",
     };
   }
 
@@ -346,8 +346,10 @@
   // One click = one answer: the chosen card flashes briefly, then the next pair loads.
   let cur = null; // { t0, locked }
   function runTrial() {
+    // comprehension check 2: same page again, right after the Nth screen (CFG.secondCheckAfter, default 5)
+    const after2 = Math.min(CFG.secondCheckAfter ?? 5, SEQ.length);
+    if (CFG.comprehension !== false && S.idx === after2 && !S.compEndDoneAt) return showComp("end");
     if (S.idx >= SEQ.length) {
-      if (CFG.comprehension !== false && !S.compEndDoneAt) return showComp("end");
       if (CFG.demographics !== false && !S.demographics) return showDemo();
       return finish();
     }
@@ -402,8 +404,7 @@
       chosen_side: side, chosen_method: side === "L" ? t.left : t.right,
       other_method: side === "L" ? t.right : t.left,
       // how long this image pair was on screen: both heatmaps visible -> click
-      image_duration_ms: dur,
-      image_duration_s: dur == null ? null : dur / 1000,
+      image_duration_s: dur == null ? null : dur / 1000, // seconds, 3 decimals
       shown_at: cur.onset || "",
       overlay: !!CFG.overlay,
       attention_target: t.kind === "attention" ? t.target : "",
@@ -475,7 +476,7 @@
       <table><tr><th>Method</th><th class="num">Chosen</th><th class="num">Shown</th><th>Win rate</th></tr>
       ${rows.map((r) => `<tr><td>${r.m}</td><td class="num">${r.w}</td><td class="num">${r.n}</td><td><span class="bar" style="width:${Math.round(r.p * 120)}px"></span>${(r.p * 100).toFixed(0)}%</td></tr>`).join("")}
       </table>
-      <p class="muted">Comprehension: start ${S.comp ? S.comp.attempts.length : 0} attempt(s) · end wrong: ${summarize().comp_end_wrong || "none"} · exclude_comprehension: <b>${summarize().exclude_comprehension}</b> · Attention checks passed: ${att.filter((r) => r.attention_pass === true).length} / ${att.length} · picked left side: ${(leftRate * 100).toFixed(0)}% · median time per image: ${median(main.map((r) => r.image_duration_ms).filter(Boolean))} · total time: ${durations().duration_total_s} s</p>`;
+      <p class="muted">Comprehension: check 1 ${S.comp ? S.comp.attempts.length : 0} attempt(s) · check 2 wrong: ${summarize().check2_first_try_wrong || "none"} · exclude_comprehension: <b>${summarize().exclude_comprehension}</b> · Attention checks passed: ${att.filter((r) => r.attention_pass === true).length} / ${att.length} · picked left side: ${(leftRate * 100).toFixed(0)}% · median time per image: ${summarize().image_duration_median_s} s · total time: ${durations().duration_total_s} s</p>`;
   }
   const median = (a) => { if (!a.length) return "– (auto-answered)"; const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)] + " ms"; };
 
