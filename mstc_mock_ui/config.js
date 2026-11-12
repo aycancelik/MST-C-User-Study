@@ -30,6 +30,9 @@ window.STUDY_CONFIG = {
   // fail twice -> screen-out page; same questions again at the end -> exclusion flag for the analysis.
   comprehension: true,
 
+  // Ask age, gender (optional), nationality and occupation / field of study at the very end.
+  demographics: true,
+
   // Prolific. Leave completionCode empty in the mock.
   completionCode: "",            // e.g. "C1A2B3C4"
   prolificReturnUrl: "",         // e.g. "https://app.prolific.com/submissions/complete?cc=C1A2B3C4"

@@ -105,19 +105,24 @@ What to align before wiring:
 
 ## Comprehension check (Prolific-compliant)
 
-Flow: welcome → 4 instruction pages → **comprehension check** → 42 screens → **same questions again** → end.
+Flow: welcome → **instructions + comprehension check on one page** → 42 screens → **same questions again** →
+**demographics** → end.
 
-* **Start = gate.** 4 multiple-choice questions on the task rules (what to click, no right answer,
-  what the colours mean, judge repeated photos independently). Option order is shuffled per participant.
-  2 attempts; after a wrong first attempt the wrong questions are marked (answers not revealed) and people can
-  re-read the instructions. Wrong again → screen-out page asking them to return the study on Prolific
+* **Framing:** participants are told it's about how people perceive images. Nothing on any participant screen
+  mentions AI or models (checked automatically on every screen). Heatmaps are introduced as "coloured maps of the photo".
+* **Start = gate.** The instructions and 4 multiple-choice questions on the same page (as Prolific asks): what to click,
+  no right answer, how long to spend (a few seconds), judge repeated photos independently. Option order is shuffled
+  per participant. 2 attempts; after a wrong first attempt the wrong questions are marked (answers not revealed) and
+  the instructions stay right above. Wrong again → screen-out page asking them to return the study on Prolific
   ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
-  This follows Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
-* **End = data-quality flag only.** Same questions once, no feedback. A question answered wrong both at the
-  start (1st attempt) and at the end sets `exclude_comprehension = true`. Exclusion from the **analysis**;
-  payment is not affected.
+  Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
+* **End = data-quality flag only.** Same questions once (without the instructions), no feedback. A question answered
+  wrong both at the start (1st attempt) and at the end sets `exclude_comprehension = true`. Exclusion from the
+  **analysis**; payment is not affected.
+* **Demographics** (last page): age (18–100, required), gender (male / female / non-binary / prefer not to say, optional),
+  nationality (required, country suggestions), occupation or field of study (required). Mentioned in the consent text.
 * Saved per participant (JSON `summary` + repeated on every CSV row): `comp_start_attempts`, `comp_start_passed`,
-  `comp_screened_out`, `comp_start_first_wrong`, `comp_end_wrong`, `comp_wrong_both_times`, `exclude_comprehension`.
-  Full answers and timestamps per attempt are in the JSON (`comp`, `compEnd`).
-* Switch off with `comprehension: false` in `config.js`. Demo view (`?demo=1`) ticks the correct options and has
-  "fill correct / fill 1 wrong" buttons to show both paths.
+  `comp_screened_out`, `comp_start_first_wrong`, `comp_end_wrong`, `comp_wrong_both_times`, `exclude_comprehension`,
+  `age`, `gender`, `nationality`, `occupation`. Full answers per attempt are in the JSON (`comp`, `compEnd`, `demographics`).
+* Switch parts off with `comprehension: false` / `demographics: false` in `config.js`. Demo view (`?demo=1`) ticks the
+  correct options and has "fill correct / fill 1 wrong" buttons to show both paths.

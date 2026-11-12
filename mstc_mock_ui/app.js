@@ -171,52 +171,24 @@
     if (S.comp && S.comp.screened_out) return screenOut();
     if (S.idx >= SEQ.length) return runTrial(); // -> end check or finish
     if (S.idx > 0 || (S.comp && S.comp.passed)) return runTrial();
-    initInstructions();
-  }
-
-  // ---------- instructions (paged) ----------
-  // Example uses a photo that is NOT in the trial set (assets/example), so nobody is primed on a real trial.
-  function initInstructions() {
-    const ex = "assets/example/";
-    $("#mock-trial").innerHTML = `
-      <img class="mock-photo" src="${ex}input.png" alt="example photo">
-      <div class="mock-pair"><img src="${ex}heatmap_1.png" alt="example heatmap"><img src="${ex}heatmap_2.png" alt="example heatmap"></div>`;
-    $("#i-ntrials").textContent = SEQ.length; // participants just see the total
-    const pages = [...document.querySelectorAll("#s-instr .page")];
-    $("#steps").innerHTML = pages.map(() => "<i></i>").join("");
-    let k = 0;
-    const render = () => {
-      pages.forEach((pg, i) => (pg.hidden = i !== k));
-      [...$("#steps").children].forEach((d, i) => d.classList.toggle("on", i <= k));
-      $("#btn-back").style.visibility = k ? "visible" : "hidden";
-      const back = S.comp && S.comp.attempts.length;
-      $("#btn-fwd").textContent = k === pages.length - 1 ? (back ? "Back to the questions" : "Continue") : "Next";
-      window.scrollTo(0, 0);
-    };
-    $("#btn-back").onclick = () => { if (k > 0) { k--; render(); } };
-    $("#btn-fwd").onclick = () => {
-      if (k < pages.length - 1) { k++; render(); return; }
-      S.instrDone = S.instrDone || new Date().toISOString(); save();
-      CFG.comprehension === false ? runTrial() : showComp("start");
-    };
-    show("s-instr"); render();
+    showComp("start");
   }
 
   // ---------- comprehension check (Prolific-compliant) ----------
-  // START: after the instructions, before the task. 2 attempts; between them participants may re-read
-  //        the instructions and see WHICH questions are wrong (not the answers). Failing twice ->
+  // START: instructions and questions on ONE page (as Prolific asks), before the task. 2 attempts;
+  //        after a wrong 1st try the wrong questions are marked (not the answers). Failing twice ->
   //        screen-out page asking them to return the study (never a rejection).
   // END:   the same questions once more after the last pair, no feedback. A question answered wrong
   //        both at the start (1st attempt) and at the end flags the person for exclusion from the
   //        ANALYSIS only (payment is not affected; Prolific doesn't allow rejecting on these).
   const COMP = [
-    { id: "task", q: "What do you do on each screen?", hint: "Have another look at Step 3.",
+    { id: "task", q: "What do you do on each screen?", hint: "Have another look at the instructions above.",
       opts: ["Click the heatmap I find more legible", "Click the heatmap with the most red", "Click the heatmap that looks most like the photo", "Click the photo"] },
-    { id: "right_answer", q: "Is there a right or wrong answer for each pair?", hint: "Have another look at Step 3.",
+    { id: "right_answer", q: "Is there a right or wrong answer for each pair?", hint: "Have another look at the instructions above.",
       opts: ["No, it's my own impression", "Yes, one heatmap is always the correct one", "Yes, the left heatmap is always correct"] },
-    { id: "colours", q: "What do the colours in a heatmap show?", hint: "Have another look at Step 2.",
-      opts: ["Regions the model reacted to (red/blue); grey means it ignored them", "The real colours of the photo", "How warm or cold the scene is"] },
-    { id: "repeat", q: "The same photo shows up again with different heatmaps. What do you do?", hint: "Have another look at Step 3.",
+    { id: "speed", q: "How long should you spend on each pair?", hint: "Have another look at the instructions above.",
+      opts: ["A few seconds, going with my impression", "At least a minute per pair", "As long as it takes to find the correct one"] },
+    { id: "repeat", q: "The same photo shows up again with different heatmaps. What do you do?", hint: "Have another look at the instructions above.",
       opts: ["Judge the new pair on its own", "Pick the same side as last time", "Skip it"] },
   ]; // first option = correct; the order shown is shuffled per participant (same order at start and end)
 
@@ -225,15 +197,16 @@
     compStage = stage;
     const rnd = mulberry32(hash("comp|" + S.pid));
     const start = stage === "start", n = S.comp ? S.comp.attempts.length : 0;
-    $("#comp-eyebrow").textContent = start ? "Quick check · before you start" : "One last thing";
-    $("#comp-title").textContent = start ? "Did the instructions make sense?" : "Please answer these once more";
-    $("#comp-lead").textContent = start ? "Please answer these 4 questions about the task."
+    $("#instr-block").hidden = !start;
+    $("#i-ntrials").textContent = SEQ.length; // participants just see the total
+    $("#comp-eyebrow").textContent = start ? "Quick check" : "One last thing";
+    $("#comp-title").textContent = start ? "Before you start, please answer these 4 questions" : "Please answer these once more";
+    $("#comp-lead").textContent = start ? "You can scroll up and re-read the instructions at any time."
       : "The same 4 questions as at the start. Just answer from memory.";
-    $("#btn-reread").hidden = !start;
-    $("#btn-comp").textContent = start ? "Check my answers" : "Finish";
+    $("#btn-comp").textContent = start ? "Check my answers" : "Continue";
     const last = start && n === 1 ? S.comp.attempts[0] : null; // after a failed 1st attempt
     $("#comp-msg").hidden = !last;
-    if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). You can re-read the instructions, then try again. <b>This is your last attempt.</b>";
+    if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). Please re-read the instructions above, then try again. <b>This is your last attempt.</b>";
     $("#comp-qs").innerHTML = COMP.map((c) => {
       const order = shuffle(c.opts.map((_, i) => i), rnd);
       const wrong = last && !last.correct[c.id];
@@ -244,8 +217,8 @@
     }).join("");
     $("#comp-err").hidden = true;
     show("s-comp");
+    if (last) setTimeout(() => $("#comp-msg").scrollIntoView({ block: "center" }), 0); // keep the feedback in view
   }
-  $("#btn-reread").onclick = () => initInstructions();
   $("#f-comp").addEventListener("change", (e) => { const q = e.target.closest(".q"); if (q) q.classList.remove("wrong", "missing"); });
   $("#f-comp").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -262,13 +235,39 @@
     const rec = { at: new Date().toISOString(), answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, COMP.find((c) => c.id === k).opts[v]])),
       correct, n_wrong: Object.values(correct).filter((v) => !v).length };
     rec.answers_idx = answers; // 0 = correct option
-    if (compStage === "end") { S.compEnd = rec; save(); return finish(); }
+    if (compStage === "end") { S.compEnd = rec; save(); return runTrial(); } // -> demographics -> end
     S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
     S.comp.attempts.push(rec);
     if (!rec.n_wrong) { S.comp.passed = true; save(); return runTrial(); }
     if (S.comp.attempts.length >= 2) { S.comp.screened_out = true; S.finished = new Date().toISOString(); save(); return screenOut(); }
     save(); showComp("start");
   });
+
+  // ---------- demographics (end of study) ----------
+  function showDemo() { show("s-demo"); }
+  $("#f-demo").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const f = e.target, age = +f.age.value;
+    const d = { age: f.age.value ? age : "", gender: (f.querySelector("input[name=gender]:checked") || {}).value || "",
+      nationality: f.nationality.value.trim(), occupation: f.occupation.value.trim() };
+    const bad = !(age >= 18 && age <= 100) || !d.nationality || !d.occupation;
+    [f.age, f.nationality, f.occupation].forEach((el) => el.classList.add("touched"));
+    $("#demo-err").hidden = !bad;
+    if (bad) return;
+    S.demographics = { ...d, at: new Date().toISOString() }; save();
+    finish();
+  });
+  $("#f-demo").addEventListener("input", () => { $("#demo-err").hidden = true; });
+  // nationality suggestions: country names from the browser (ISO codes), so spelling stays consistent
+  (() => {
+    try {
+      const codes = "AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI KH CM CA CV CF TD CL CN CO KM CG CD CR CI HR CU CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HK HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI XK KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MR MU MX FM MD MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG KP MK NO OM PK PW PS PA PG PY PE PH PL PT PR QA RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA KR SS ES LK SD SR SE CH SY TW TJ TZ TH TL TG TO TT TN TR TM TV UG UA AE GB US UY UZ VU VA VE VN YE ZM ZW".split(" ");
+      const dn = new Intl.DisplayNames(["en"], { type: "region" });
+      const dl = document.createElement("datalist"); dl.id = "countries";
+      dl.innerHTML = codes.map((c) => dn.of(c)).sort().map((n) => `<option value="${n}">`).join("");
+      document.body.appendChild(dl);
+    } catch {}
+  })();
 
   async function screenOut() {
     if (CFG.prolificScreenOutUrl) { const a = $("#btn-screenout"); a.href = CFG.prolificScreenOutUrl; a.hidden = false;
@@ -296,6 +295,10 @@
       exclude_comprehension: both.length > 0,
       attention_checks: att.length,
       attention_failed: att.filter((r) => r.attention_pass !== true).length,
+      age: S.demographics ? S.demographics.age : "",
+      gender: S.demographics ? S.demographics.gender : "",
+      nationality: S.demographics ? S.demographics.nationality : "",
+      occupation: S.demographics ? S.demographics.occupation : "",
     };
   }
   const exportJSON = () => ({ summary: summarize(), ...S });
@@ -304,7 +307,11 @@
   // One click = one answer: the chosen card flashes briefly, then the next pair loads.
   let cur = null; // { t0, locked }
   function runTrial() {
-    if (S.idx >= SEQ.length) return CFG.comprehension !== false && !S.compEnd ? showComp("end") : finish();
+    if (S.idx >= SEQ.length) {
+      if (CFG.comprehension !== false && !S.compEnd) return showComp("end");
+      if (CFG.demographics !== false && !S.demographics) return showDemo();
+      return finish();
+    }
     if (CFG.breakAt && !S.breakShown && S.idx === Math.round(SEQ.length * CFG.breakAt)) {
       S.breakShown = true; save();
       $("#btn-resume").onclick = () => runTrial();

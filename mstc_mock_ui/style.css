@@ -152,3 +152,15 @@ body.demo.is-catch .card { outline: 2px dashed #f59e0b; outline-offset: 4px; }
 .q.missing { border-color: #e7cf62; }
 .comp-msg { background: #fff4c2; border: 1px solid #e7cf62; border-radius: 10px; padding: 10px 14px; margin: 0 0 16px; font-size: 15px; }
 body.demo .q .opt.is-correct::after { content: "✓"; color: #16a34a; font-weight: 700; margin-left: 4px; }
+
+/* single-page instructions + check, demographics */
+.sep { border: none; border-top: 1px solid var(--line); margin: 28px 0 24px; }
+.comp-h { font-size: 22px; letter-spacing: -0.01em; margin: 4px 0 6px; }
+.pager-end { justify-content: flex-end; }
+.form-err { color: var(--red); font-size: 14px; }
+.field small, .radios small { font-weight: 400; color: var(--ink-3); }
+.radios { border: none; padding: 0; margin: 20px 0 14px; }
+.radios legend { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; padding: 0; }
+.radios label { display: flex; gap: 10px; align-items: center; padding: 5px 0; cursor: pointer; }
+.radios input { accent-color: var(--ink); width: 16px; height: 16px; }
+.field input:invalid.touched { border-color: var(--red); }
