@@ -74,12 +74,13 @@
 
       <div class="page" data-page="3">
         <p class="eyebrow">Step 4 of 4 · Ready?</p>
-        <h1>You're all set</h1>
+        <h1>Almost ready</h1>
         <p>Remember: <b>click the heatmap you find more legible</b>. One click per pair, no right or wrong answers.</p>
         <div class="keys">
           <span>Click a heatmap, or use <kbd>←</kbd> / <kbd>→</kbd> for left / right</span>
         </div>
         <p class="muted">Please stay focused until the end, and take the short break halfway if you need it.</p>
+        <p>Next, <b>4 quick questions</b> to make sure the instructions were clear.</p>
       </div>
 
       <div class="pager">
@@ -113,6 +114,33 @@
           <span class="demo-label"></span>
         </button>
       </div>
+    </div>
+  </section>
+
+  <!-- COMPREHENSION CHECK (start: gate, 2 attempts / end: once, data-quality flag) -->
+  <section class="screen" id="s-comp" hidden>
+    <form class="narrow" id="f-comp" novalidate>
+      <p class="eyebrow" id="comp-eyebrow">Quick check · before you start</p>
+      <h1 id="comp-title">Did the instructions make sense?</h1>
+      <p class="muted" id="comp-lead">Please answer these 4 questions about the task.</p>
+      <div class="comp-msg" id="comp-msg" hidden></div>
+      <div id="comp-qs"></div>
+      <p class="form-err" id="comp-err" hidden>Please answer every question.</p>
+      <div class="pager">
+        <button class="btn ghost" type="button" id="btn-reread">Re-read the instructions</button>
+        <button class="btn primary" type="submit" id="btn-comp">Check my answers</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- SCREEN-OUT (failed the start check twice) -->
+  <section class="screen" id="s-screenout" hidden>
+    <div class="narrow center">
+      <p class="eyebrow">Thank you</p>
+      <h1>Unfortunately you can't continue</h1>
+      <p>Some answers about the task were still not right after the second try, so we can't include you in this study. Thank you for your time!</p>
+      <p id="so-how">Please <b>return your submission</b>: close this tab, go back to Prolific and click <b>“Cancel participation”</b>.</p>
+      <a class="btn primary" id="btn-screenout" hidden>Return to Prolific</a>
     </div>
   </section>
 

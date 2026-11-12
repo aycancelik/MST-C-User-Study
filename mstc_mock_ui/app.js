@@ -168,8 +168,9 @@
         ua: navigator.userAgent, screen: `${screen.width}x${screen.height}` };
       save();
     }
-    if (S.idx >= SEQ.length) return finish();
-    if (S.idx > 0) return runTrial();
+    if (S.comp && S.comp.screened_out) return screenOut();
+    if (S.idx >= SEQ.length) return runTrial(); // -> end check or finish
+    if (S.idx > 0 || (S.comp && S.comp.passed)) return runTrial();
     initInstructions();
   }
 
@@ -188,22 +189,122 @@
       pages.forEach((pg, i) => (pg.hidden = i !== k));
       [...$("#steps").children].forEach((d, i) => d.classList.toggle("on", i <= k));
       $("#btn-back").style.visibility = k ? "visible" : "hidden";
-      $("#btn-fwd").textContent = k === pages.length - 1 ? "Start the study" : "Next";
+      const back = S.comp && S.comp.attempts.length;
+      $("#btn-fwd").textContent = k === pages.length - 1 ? (back ? "Back to the questions" : "Continue") : "Next";
       window.scrollTo(0, 0);
     };
     $("#btn-back").onclick = () => { if (k > 0) { k--; render(); } };
     $("#btn-fwd").onclick = () => {
       if (k < pages.length - 1) { k++; render(); return; }
-      S.instrDone = new Date().toISOString(); save(); runTrial();
+      S.instrDone = S.instrDone || new Date().toISOString(); save();
+      CFG.comprehension === false ? runTrial() : showComp("start");
     };
     show("s-instr"); render();
   }
+
+  // ---------- comprehension check (Prolific-compliant) ----------
+  // START: after the instructions, before the task. 2 attempts; between them participants may re-read
+  //        the instructions and see WHICH questions are wrong (not the answers). Failing twice ->
+  //        screen-out page asking them to return the study (never a rejection).
+  // END:   the same questions once more after the last pair, no feedback. A question answered wrong
+  //        both at the start (1st attempt) and at the end flags the person for exclusion from the
+  //        ANALYSIS only (payment is not affected; Prolific doesn't allow rejecting on these).
+  const COMP = [
+    { id: "task", q: "What do you do on each screen?", hint: "Have another look at Step 3.",
+      opts: ["Click the heatmap I find more legible", "Click the heatmap with the most red", "Click the heatmap that looks most like the photo", "Click the photo"] },
+    { id: "right_answer", q: "Is there a right or wrong answer for each pair?", hint: "Have another look at Step 3.",
+      opts: ["No, it's my own impression", "Yes, one heatmap is always the correct one", "Yes, the left heatmap is always correct"] },
+    { id: "colours", q: "What do the colours in a heatmap show?", hint: "Have another look at Step 2.",
+      opts: ["Regions the model reacted to (red/blue); grey means it ignored them", "The real colours of the photo", "How warm or cold the scene is"] },
+    { id: "repeat", q: "The same photo shows up again with different heatmaps. What do you do?", hint: "Have another look at Step 3.",
+      opts: ["Judge the new pair on its own", "Pick the same side as last time", "Skip it"] },
+  ]; // first option = correct; the order shown is shuffled per participant (same order at start and end)
+
+  let compStage = "start";
+  function showComp(stage) {
+    compStage = stage;
+    const rnd = mulberry32(hash("comp|" + S.pid));
+    const start = stage === "start", n = S.comp ? S.comp.attempts.length : 0;
+    $("#comp-eyebrow").textContent = start ? "Quick check · before you start" : "One last thing";
+    $("#comp-title").textContent = start ? "Did the instructions make sense?" : "Please answer these once more";
+    $("#comp-lead").textContent = start ? "Please answer these 4 questions about the task."
+      : "The same 4 questions as at the start. Just answer from memory.";
+    $("#btn-reread").hidden = !start;
+    $("#btn-comp").textContent = start ? "Check my answers" : "Finish";
+    const last = start && n === 1 ? S.comp.attempts[0] : null; // after a failed 1st attempt
+    $("#comp-msg").hidden = !last;
+    if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). You can re-read the instructions, then try again. <b>This is your last attempt.</b>";
+    $("#comp-qs").innerHTML = COMP.map((c) => {
+      const order = shuffle(c.opts.map((_, i) => i), rnd);
+      const wrong = last && !last.correct[c.id];
+      const prev = last ? last.answers[c.id] : null;
+      return `<fieldset class="q${wrong ? " wrong" : ""}" data-q="${c.id}"><legend>${c.q}</legend>` +
+        order.map((i) => `<label class="opt${i === 0 ? " is-correct" : ""}"><input type="radio" name="${c.id}" value="${i}"${prev === i && !wrong ? " checked" : ""}><span>${c.opts[i]}</span></label>`).join("") +
+        `<p class="hint">Not quite. ${c.hint}</p></fieldset>`;
+    }).join("");
+    $("#comp-err").hidden = true;
+    show("s-comp");
+  }
+  $("#btn-reread").onclick = () => initInstructions();
+  $("#f-comp").addEventListener("change", (e) => { const q = e.target.closest(".q"); if (q) q.classList.remove("wrong", "missing"); });
+  $("#f-comp").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const answers = {}, correct = {};
+    let missing = false;
+    COMP.forEach((c) => {
+      const el = e.target.querySelector(`input[name="${c.id}"]:checked`);
+      e.target.querySelector(`[data-q="${c.id}"]`).classList.toggle("missing", !el);
+      if (!el) { missing = true; return; }
+      answers[c.id] = +el.value; correct[c.id] = +el.value === 0;
+    });
+    $("#comp-err").hidden = !missing;
+    if (missing) return;
+    const rec = { at: new Date().toISOString(), answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, COMP.find((c) => c.id === k).opts[v]])),
+      correct, n_wrong: Object.values(correct).filter((v) => !v).length };
+    rec.answers_idx = answers; // 0 = correct option
+    if (compStage === "end") { S.compEnd = rec; save(); return finish(); }
+    S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
+    S.comp.attempts.push(rec);
+    if (!rec.n_wrong) { S.comp.passed = true; save(); return runTrial(); }
+    if (S.comp.attempts.length >= 2) { S.comp.screened_out = true; S.finished = new Date().toISOString(); save(); return screenOut(); }
+    save(); showComp("start");
+  });
+
+  async function screenOut() {
+    if (CFG.prolificScreenOutUrl) { const a = $("#btn-screenout"); a.href = CFG.prolificScreenOutUrl; a.hidden = false;
+      $("#so-how").innerHTML = "Please click the button below to go back to Prolific."; }
+    show("s-screenout");
+    if (CFG.submitUrl && !S.submitted) { // keep a record of screen-outs too
+      try { const r = await fetch(CFG.submitUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(exportJSON()) }); if (r.ok) { S.submitted = true; save(); } } catch {}
+    }
+  }
+
+  // session-level summary (comprehension + attention), also repeated on every CSV row
+  function summarize() {
+    const att = S.responses.filter((r) => r.kind === "attention");
+    const first = S.comp && S.comp.attempts[0], end = S.compEnd;
+    const wrongFirst = first ? COMP.filter((c) => !first.correct[c.id]).map((c) => c.id) : [];
+    const wrongEnd = end ? COMP.filter((c) => !end.correct[c.id]).map((c) => c.id) : [];
+    const both = wrongFirst.filter((q) => wrongEnd.includes(q));
+    return {
+      comp_start_attempts: S.comp ? S.comp.attempts.length : 0,
+      comp_start_passed: !!(S.comp && S.comp.passed),
+      comp_screened_out: !!(S.comp && S.comp.screened_out),
+      comp_start_first_wrong: wrongFirst.join(";"),
+      comp_end_wrong: wrongEnd.join(";"),
+      comp_wrong_both_times: both.join(";"),
+      exclude_comprehension: both.length > 0,
+      attention_checks: att.length,
+      attention_failed: att.filter((r) => r.attention_pass !== true).length,
+    };
+  }
+  const exportJSON = () => ({ summary: summarize(), ...S });
 
   // ---------- trial ----------
   // One click = one answer: the chosen card flashes briefly, then the next pair loads.
   let cur = null; // { t0, locked }
   function runTrial() {
-    if (S.idx >= SEQ.length) return finish();
+    if (S.idx >= SEQ.length) return CFG.comprehension !== false && !S.compEnd ? showComp("end") : finish();
     if (CFG.breakAt && !S.breakShown && S.idx === Math.round(SEQ.length * CFG.breakAt)) {
       S.breakShown = true; save();
       $("#btn-resume").onclick = () => runTrial();
@@ -226,7 +327,7 @@
     document.querySelectorAll(".hm-photo").forEach((im) => (im.src = photo(t.image)));
     $("#card-L .demo-label").textContent = `${t.left} · ${t.model}`;
     $("#card-R .demo-label").textContent = `${t.right} · ${t.model}`;
-    document.body.classList.toggle("is-catch", t.kind === "attention");
+    document.body.classList.toggle("is-catch", DEMO && t.kind === "attention"); // marker only in demo view
     applyOverlay();
     document.querySelectorAll(".card").forEach((c) => c.classList.remove("selected", "dimmed"));
 
@@ -275,14 +376,15 @@
     if (CFG.completionCode) { $("#completion-code").textContent = CFG.completionCode; $("#code-box").hidden = false; }
     if (CFG.prolificReturnUrl) { const a = $("#btn-prolific"); a.href = CFG.prolificReturnUrl; a.hidden = false; }
     $("#end-tools").hidden = !(CFG.showDownloads || DEMO);
-    $("#btn-csv").onclick = () => download(`mstc_${S.pid}.csv`, toCSV(S.responses), "text/csv");
-    $("#btn-json").onclick = () => download(`mstc_${S.pid}.json`, JSON.stringify(S, null, 1), "application/json");
+    const sm = summarize();
+    $("#btn-csv").onclick = () => download(`mstc_${S.pid}.csv`, toCSV(S.responses.map((r) => ({ ...r, ...sm }))), "text/csv");
+    $("#btn-json").onclick = () => download(`mstc_${S.pid}.json`, JSON.stringify(exportJSON(), null, 1), "application/json");
     if (DEMO) renderSummary();
     show("s-end");
     if (CFG.submitUrl && !S.submitted) {
       $("#end-msg").textContent = "Saving your answers…";
       try {
-        const res = await fetch(CFG.submitUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(S) });
+        const res = await fetch(CFG.submitUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(exportJSON()) });
         if (!res.ok) throw new Error(res.status);
         S.submitted = true; save();
         $("#end-msg").textContent = "Your answers have been saved.";
@@ -323,7 +425,7 @@
       <table><tr><th>Method</th><th class="num">Chosen</th><th class="num">Shown</th><th>Win rate</th></tr>
       ${rows.map((r) => `<tr><td>${r.m}</td><td class="num">${r.w}</td><td class="num">${r.n}</td><td><span class="bar" style="width:${Math.round(r.p * 120)}px"></span>${(r.p * 100).toFixed(0)}%</td></tr>`).join("")}
       </table>
-      <p class="muted">Attention checks passed: ${att.filter((r) => r.attention_pass === true).length} / ${att.length} · picked left side: ${(leftRate * 100).toFixed(0)}% · median RT: ${median(main.map((r) => r.rt_ms).filter(Boolean))}</p>`;
+      <p class="muted">Comprehension: start ${S.comp ? S.comp.attempts.length : 0} attempt(s) · end wrong: ${summarize().comp_end_wrong || "none"} · exclude_comprehension: <b>${summarize().exclude_comprehension}</b> · Attention checks passed: ${att.filter((r) => r.attention_pass === true).length} / ${att.length} · picked left side: ${(leftRate * 100).toFixed(0)}% · median RT: ${median(main.map((r) => r.rt_ms).filter(Boolean))}</p>`;
   }
   const median = (a) => { if (!a.length) return "– (auto-answered)"; const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)] + " ms"; };
 
@@ -339,7 +441,9 @@
     bar.innerHTML = `<span class="pill">DEMO</span>
       <span>pid <b>${S ? S.pid : "–"}</b></span>
       ${t ? `<span>${t.kind === "attention" ? `<b class="catch-flag">HIDDEN ATTENTION CHECK</b> · correct = ${t.target === "L" ? "left" : "right"}` : `trial <b>${t.id}</b>`} · ${t.image.slice(-8)} · <b>${t.model}</b></span>` : ""}
+      ${!$("#s-comp").hidden ? `<span><b>${compStage === "start" ? "COMPREHENSION CHECK (start, gate)" : "COMPREHENSION CHECK (end, flag only)"}</b></span>` : ""}
       <span class="spacer"></span>
+      ${!$("#s-comp").hidden ? `<button id="d-right">fill correct</button><button id="d-wrong">fill 1 wrong</button>` : ""}
       <label><input type="checkbox" id="d-ov" ${CFG.overlay ? "checked" : ""}> overlay on photo</label>
       ${S && S.idx < SEQ.length ? `<button id="d-fill">auto-answer 10</button><button id="d-end">auto-answer all</button>` : ""}
       <button id="d-new">new participant</button>`;
@@ -349,7 +453,12 @@
         const t = SEQ[S.idx]; const side = t.kind === "attention" ? t.target : Math.random() < .5 ? "L" : "R";
         cur.locked = false; choose(side, true); if (!$("#s-break").hidden) runTrial();
       }
+      renderDemoBar();
     };
+    const fill = (nWrong) => { COMP.forEach((c, k) => { const v = k < nWrong ? 1 : 0; const el = document.querySelector(`#f-comp input[name="${c.id}"][value="${v}"]`); if (el) el.checked = true; });
+      document.querySelectorAll("#f-comp .q").forEach((q) => q.classList.remove("wrong", "missing")); };
+    const dr = $("#d-right"); if (dr) dr.onclick = () => fill(0);
+    const dw = $("#d-wrong"); if (dw) dw.onclick = () => fill(1);
     const f = $("#d-fill"); if (f) f.onclick = () => auto(10);
     const e = $("#d-end"); if (e) e.onclick = () => auto(1e9);
     $("#d-new").onclick = () => { if (S) store.del(key(S.pid)); location.href = location.pathname + "?demo=1"; };

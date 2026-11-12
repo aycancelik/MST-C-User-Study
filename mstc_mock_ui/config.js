@@ -26,9 +26,16 @@ window.STUDY_CONFIG = {
   overlay: false,
   overlayOpacity: 0.6,
 
+  // Comprehension check (Prolific-compliant): 4 questions after the instructions, 2 attempts,
+  // fail twice -> screen-out page; same questions again at the end -> exclusion flag for the analysis.
+  comprehension: true,
+
   // Prolific. Leave completionCode empty in the mock.
   completionCode: "",            // e.g. "C1A2B3C4"
   prolificReturnUrl: "",         // e.g. "https://app.prolific.com/submissions/complete?cc=C1A2B3C4"
+  // Optional: a separate Prolific completion code set up as a SCREEN-OUT (fixed small payment).
+  // Empty = the screen-out page asks people to return the study ("Cancel participation") instead.
+  prolificScreenOutUrl: "",      // e.g. "https://app.prolific.com/submissions/complete?cc=SCREENOUT1"
 
   // Optional: POST the full response JSON here at the end (e.g. a DataPipe /
   // Google Apps Script / own server endpoint). Empty = no upload, local download only.

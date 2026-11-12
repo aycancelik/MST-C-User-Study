@@ -102,3 +102,22 @@ What to align before wiring:
 * **Models:** pipeline = resnet34, vgg16; heatmap folder also has dino
 * **Who decides sides/attention checks:** the pipeline already does counterbalanced sides + attention-check
   injection, so when it supplies the list, the app should just display it as given (skip its own shuffling).
+
+## Comprehension check (Prolific-compliant)
+
+Flow: welcome → 4 instruction pages → **comprehension check** → 42 screens → **same questions again** → end.
+
+* **Start = gate.** 4 multiple-choice questions on the task rules (what to click, no right answer,
+  what the colours mean, judge repeated photos independently). Option order is shuffled per participant.
+  2 attempts; after a wrong first attempt the wrong questions are marked (answers not revealed) and people can
+  re-read the instructions. Wrong again → screen-out page asking them to return the study on Prolific
+  ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
+  This follows Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
+* **End = data-quality flag only.** Same questions once, no feedback. A question answered wrong both at the
+  start (1st attempt) and at the end sets `exclude_comprehension = true`. Exclusion from the **analysis**;
+  payment is not affected.
+* Saved per participant (JSON `summary` + repeated on every CSV row): `comp_start_attempts`, `comp_start_passed`,
+  `comp_screened_out`, `comp_start_first_wrong`, `comp_end_wrong`, `comp_wrong_both_times`, `exclude_comprehension`.
+  Full answers and timestamps per attempt are in the JSON (`comp`, `compEnd`).
+* Switch off with `comprehension: false` in `config.js`. Demo view (`?demo=1`) ticks the correct options and has
+  "fill correct / fill 1 wrong" buttons to show both paths.

@@ -140,3 +140,15 @@ body.ready .loading { display: none; }
 /* demo only: mark hidden attention checks for the researcher */
 body.demo.is-catch .card { outline: 2px dashed #f59e0b; outline-offset: 4px; }
 #demo-bar .catch-flag { color: #fbbf24; }
+
+/* comprehension check */
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 0 0 14px; }
+.q legend { font-weight: 600; padding: 0; margin-bottom: 8px; float: left; width: 100%; }
+.q .opt { display: flex; gap: 10px; align-items: flex-start; padding: 6px 4px; cursor: pointer; clear: both; }
+.q .opt input { margin-top: 4px; accent-color: var(--ink); width: 16px; height: 16px; flex: none; }
+.q.wrong { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.q .hint { display: none; color: var(--red); font-size: 14px; margin: 6px 4px 0; clear: both; }
+.q.wrong .hint { display: block; }
+.q.missing { border-color: #e7cf62; }
+.comp-msg { background: #fff4c2; border: 1px solid #e7cf62; border-radius: 10px; padding: 10px 14px; margin: 0 0 16px; font-size: 15px; }
+body.demo .q .opt.is-correct::after { content: "✓"; color: #16a34a; font-weight: 700; margin-left: 4px; }
