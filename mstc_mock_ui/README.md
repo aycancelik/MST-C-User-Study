@@ -116,9 +116,10 @@ Flow: welcome → **instructions + comprehension check on one page** → 42 scre
   the instructions stay right above. Wrong again → screen-out page asking them to return the study on Prolific
   ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
   Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
-* **End = data-quality flag only.** Same questions once (without the instructions), no feedback. A question answered
-  wrong both at the start (1st attempt) and at the end sets `exclude_comprehension = true`. Exclusion from the
-  **analysis**; payment is not affected.
+* **End = data-quality flag only.** The **identical page** again (same instructions + same questions, so people answer
+  with the instructions in view, not from memory). 1 attempt, no feedback. A question answered wrong both at the start
+  (1st attempt) and at the end sets `exclude_comprehension = true`. Exclusion from the **analysis**; payment is not affected.
+* Correct answers are never marked in the participant's page; only `?demo=1` shows ✓ next to them.
 * **Demographics** (last page): age (18–100, required), gender (male / female / non-binary / prefer not to say, optional),
   nationality (required, country suggestions), occupation or field of study (required). Mentioned in the consent text.
 * Saved per participant (JSON `summary` + repeated on every CSV row): `comp_start_attempts`, `comp_start_passed`,
@@ -126,3 +127,23 @@ Flow: welcome → **instructions + comprehension check on one page** → 42 scre
   `age`, `gender`, `nationality`, `occupation`. Full answers per attempt are in the JSON (`comp`, `compEnd`, `demographics`).
 * Switch parts off with `comprehension: false` / `demographics: false` in `config.js`. Demo view (`?demo=1`) ticks the
   correct options and has "fill correct / fill 1 wrong" buttons to show both paths.
+
+## Timing data
+
+Per pair (every CSV row): `rt_ms` = time from both heatmaps being visible to the click; `shown_at` / `timestamp` =
+when the pair appeared / was clicked (ISO time).
+
+Per participant (JSON `summary` + repeated on every CSV row), in seconds:
+
+| column | from → to |
+|---|---|
+| `duration_total_s` | study page opened → end screen |
+| `duration_instructions_check_s` | instructions + check shown → check passed (all attempts) |
+| `duration_trials_s` | first pair → last click (incl. break) |
+| `duration_break_s` | break screen shown → "Continue" |
+| `duration_trials_excl_break_s` | trials minus break |
+| `duration_end_check_s` | end check shown → submitted |
+| `duration_demographics_s` | demographics shown → submitted |
+| `rt_median_ms`, `rt_mean_ms`, `rt_min_ms`, `rt_max_ms` | over the 39 real pairs |
+
+All based on timestamps, so they stay correct if someone reloads mid-study.
