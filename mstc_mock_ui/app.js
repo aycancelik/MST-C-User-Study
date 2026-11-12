@@ -199,18 +199,19 @@
   function showComp(stage) {
     compStage = stage;
     const rnd = mulberry32(hash("comp|" + S.pid));
-    const start = stage === "start", n = S.comp ? S.comp.attempts.length : 0;
+    const start = stage === "start";
+    const tries = start ? (S.comp ? S.comp.attempts : []) : (S.compEndAttempts || []);
     // start and end show the IDENTICAL page: instructions + the same questions (Prolific: checks are
     // answered with the instructions in view, not from memory). End = 1 attempt, no feedback.
     $("#instr-block").hidden = false;
     $("#i-ntrials").textContent = SEQ.length; // participants just see the total
     $("#comp-eyebrow").textContent = "Quick check";
     $("#comp-title").textContent = `Please answer these ${COMP.length} questions`;
-    $("#comp-lead").textContent = "You can scroll up and re-read the instructions at any time.";
+    $("#comp-lead").textContent = "Not sure? Re-read the instructions above. You have two chances to get these right.";
     $("#btn-comp").textContent = "Continue";
     const shownKey = start ? "compShownAt" : "compEndShownAt";
     if (!S[shownKey]) { S[shownKey] = new Date().toISOString(); save(); }
-    const last = start && n === 1 ? S.comp.attempts[0] : null; // after a failed 1st attempt
+    const last = tries.length === 1 ? tries[0] : null; // after a failed 1st attempt (start AND end: same page, same rules)
     $("#comp-msg").hidden = !last;
     if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). Please re-read the instructions above, then try again. <b>This is your last attempt.</b>";
     $("#comp-qs").innerHTML = COMP.map((c) => {
@@ -218,7 +219,7 @@
       const wrong = last && !last.correct[c.id];
       const prev = last ? last.answers_idx[c.id] : null;
       return `<fieldset class="q${wrong ? " wrong" : ""}" data-q="${c.id}"><legend>${c.q}</legend>` +
-        order.map((i) => `<label class="opt${DEMO && i === 0 ? " is-correct" : ""}"><input type="radio" name="${c.id}" value="${i}"${prev === i && !wrong ? " checked" : ""}><span>${c.opts[i]}</span></label>`).join("") +
+        order.map((i) => `<label class="opt"><input type="radio" name="${c.id}" value="${i}"${prev === i && !wrong ? " checked" : ""}><span>${c.opts[i]}</span></label>`).join("") +
         `<p class="hint">Not quite. ${c.hint}</p></fieldset>`;
     }).join("");
     $("#comp-err").hidden = true;
@@ -241,7 +242,15 @@
     const rec = { at: new Date().toISOString(), answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, COMP.find((c) => c.id === k).opts[v]])),
       correct, n_wrong: Object.values(correct).filter((v) => !v).length };
     rec.answers_idx = answers; // 0 = correct option
-    if (compStage === "end") { S.compEnd = rec; save(); return runTrial(); } // -> demographics -> end
+    if (compStage === "end") {
+      // same two chances as at the start, but never screened out here (they've already done the work).
+      // The FIRST end attempt is what counts for the exclusion flag.
+      S.compEndAttempts = S.compEndAttempts || [];
+      S.compEndAttempts.push(rec);
+      S.compEnd = S.compEndAttempts[0];
+      if (rec.n_wrong && S.compEndAttempts.length < 2) { save(); return showComp("end"); }
+      S.compEndDoneAt = rec.at; save(); return runTrial(); // -> demographics -> end
+    }
     S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
     S.comp.attempts.push(rec);
     if (!rec.n_wrong) { S.comp.passed = true; S.trialsStartedAt = new Date().toISOString(); save(); return runTrial(); }
@@ -296,6 +305,7 @@
       comp_start_passed: !!(S.comp && S.comp.passed),
       comp_screened_out: !!(S.comp && S.comp.screened_out),
       comp_start_first_wrong: wrongFirst.join(";"),
+      comp_end_attempts: (S.compEndAttempts || []).length,
       comp_end_wrong: wrongEnd.join(";"),
       comp_wrong_both_times: both.join(";"),
       exclude_comprehension: both.length > 0,
@@ -314,7 +324,7 @@
   function durations() {
     const t = (iso) => (iso ? new Date(iso).getTime() : NaN);
     const sec = (a, b) => { const d = (t(b) - t(a)) / 1000; return Number.isFinite(d) ? Math.round(d) : ""; };
-    const main = S.responses.filter((r) => r.kind === "main"), rts = main.map((r) => r.rt_ms).filter((v) => v != null);
+    const main = S.responses.filter((r) => r.kind === "main"), rts = main.map((r) => r.image_duration_ms).filter((v) => v != null);
     const sorted = rts.slice().sort((a, b) => a - b), lastClick = S.responses.length ? S.responses[S.responses.length - 1].timestamp : "";
     const brk = sec(S.breakStartedAt, S.breakEndedAt), trials = sec(S.trialsStartedAt, lastClick);
     return {
@@ -323,12 +333,12 @@
       duration_trials_s: trials,                                                      // first pair -> last click, incl. break
       duration_break_s: brk,
       duration_trials_excl_break_s: trials !== "" ? trials - (brk || 0) : "",
-      duration_end_check_s: sec(S.compEndShownAt, S.compEnd && S.compEnd.at),
+      duration_end_check_s: sec(S.compEndShownAt, S.compEndDoneAt),
       duration_demographics_s: sec(S.demoShownAt, S.demographics && S.demographics.at),
-      rt_median_ms: sorted.length ? sorted[Math.floor(sorted.length / 2)] : "",
-      rt_mean_ms: rts.length ? Math.round(rts.reduce((a, b) => a + b, 0) / rts.length) : "",
-      rt_min_ms: sorted.length ? sorted[0] : "",
-      rt_max_ms: sorted.length ? sorted[sorted.length - 1] : "",
+      image_duration_median_ms: sorted.length ? sorted[Math.floor(sorted.length / 2)] : "",
+      image_duration_mean_ms: rts.length ? Math.round(rts.reduce((a, b) => a + b, 0) / rts.length) : "",
+      image_duration_min_ms: sorted.length ? sorted[0] : "",
+      image_duration_max_ms: sorted.length ? sorted[sorted.length - 1] : "",
     };
   }
 
@@ -337,7 +347,7 @@
   let cur = null; // { t0, locked }
   function runTrial() {
     if (S.idx >= SEQ.length) {
-      if (CFG.comprehension !== false && !S.compEnd) return showComp("end");
+      if (CFG.comprehension !== false && !S.compEndDoneAt) return showComp("end");
       if (CFG.demographics !== false && !S.demographics) return showDemo();
       return finish();
     }
@@ -384,13 +394,16 @@
     if (!cur || cur.locked) return;
     cur.locked = true; // ignore double clicks
     const t = SEQ[S.idx];
+    const dur = cur.t0 ? Math.round(performance.now() - cur.t0) : null; // one measurement for both columns
     S.responses.push({
       pid: S.pid, study_id: S.study_id, session_id: S.session_id,
       position: S.idx + 1, trial_id: t.id, kind: t.kind, image: t.image, model: t.model,
       left_method: t.left, right_method: t.right,
       chosen_side: side, chosen_method: side === "L" ? t.left : t.right,
       other_method: side === "L" ? t.right : t.left,
-      rt_ms: cur.t0 ? Math.round(performance.now() - cur.t0) : null, // both heatmaps visible -> click
+      // how long this image pair was on screen: both heatmaps visible -> click
+      image_duration_ms: dur,
+      image_duration_s: dur == null ? null : dur / 1000,
       shown_at: cur.onset || "",
       overlay: !!CFG.overlay,
       attention_target: t.kind === "attention" ? t.target : "",
@@ -462,7 +475,7 @@
       <table><tr><th>Method</th><th class="num">Chosen</th><th class="num">Shown</th><th>Win rate</th></tr>
       ${rows.map((r) => `<tr><td>${r.m}</td><td class="num">${r.w}</td><td class="num">${r.n}</td><td><span class="bar" style="width:${Math.round(r.p * 120)}px"></span>${(r.p * 100).toFixed(0)}%</td></tr>`).join("")}
       </table>
-      <p class="muted">Comprehension: start ${S.comp ? S.comp.attempts.length : 0} attempt(s) · end wrong: ${summarize().comp_end_wrong || "none"} · exclude_comprehension: <b>${summarize().exclude_comprehension}</b> · Attention checks passed: ${att.filter((r) => r.attention_pass === true).length} / ${att.length} · picked left side: ${(leftRate * 100).toFixed(0)}% · median RT: ${median(main.map((r) => r.rt_ms).filter(Boolean))} · total time: ${durations().duration_total_s} s</p>`;
+      <p class="muted">Comprehension: start ${S.comp ? S.comp.attempts.length : 0} attempt(s) · end wrong: ${summarize().comp_end_wrong || "none"} · exclude_comprehension: <b>${summarize().exclude_comprehension}</b> · Attention checks passed: ${att.filter((r) => r.attention_pass === true).length} / ${att.length} · picked left side: ${(leftRate * 100).toFixed(0)}% · median time per image: ${median(main.map((r) => r.image_duration_ms).filter(Boolean))} · total time: ${durations().duration_total_s} s</p>`;
   }
   const median = (a) => { if (!a.length) return "– (auto-answered)"; const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)] + " ms"; };
 

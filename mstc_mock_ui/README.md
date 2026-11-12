@@ -110,16 +110,17 @@ Flow: welcome → **instructions + comprehension check on one page** → 42 scre
 
 * **Framing:** participants are told it's about how people perceive images. Nothing on any participant screen
   mentions AI or models (checked automatically on every screen). Heatmaps are introduced as "coloured maps of the photo".
-* **Start = gate.** The instructions and 5 multiple-choice questions on the same page (as Prolific asks): what to click,
+* **Start = gate.** Short instructions and 5 multiple-choice questions on the same page (as Prolific asks): what to click,
   what "more legible" means (clearer and easier to read), no right answer, how long to spend (a few seconds), judge repeated photos independently. Option order is shuffled
   per participant. 2 attempts; after a wrong first attempt the wrong questions are marked (answers not revealed) and
   the instructions stay right above. Wrong again → screen-out page asking them to return the study on Prolific
   ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
   Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
-* **End = data-quality flag only.** The **identical page** again (same instructions + same questions, so people answer
-  with the instructions in view, not from memory). 1 attempt, no feedback. A question answered wrong both at the start
-  (1st attempt) and at the end sets `exclude_comprehension = true`. Exclusion from the **analysis**; payment is not affected.
-* Correct answers are never marked in the participant's page; only `?demo=1` shows ✓ next to them.
+* **End = data-quality flag only.** The **identical page** again (same instructions, questions and rules: two chances,
+  wrong answers marked). But nobody is screened out at the end, since they've already done the work. A question answered
+  wrong on the **first** try both at the start and at the end sets `exclude_comprehension = true`. Exclusion from the
+  **analysis** only; payment is not affected.
+* Correct answers are never marked on screen (also not in demo mode).
 * **Demographics** (last page): age (18–100, required), gender (male / female / non-binary / prefer not to say, optional),
   nationality (required, country suggestions), occupation or field of study (required). Mentioned in the consent text.
 * Saved per participant (JSON `summary` + repeated on every CSV row): `comp_start_attempts`, `comp_start_passed`,
@@ -130,7 +131,7 @@ Flow: welcome → **instructions + comprehension check on one page** → 42 scre
 
 ## Timing data
 
-Per pair (every CSV row): `rt_ms` = time from both heatmaps being visible to the click; `shown_at` / `timestamp` =
+Per pair (every CSV row): `image_duration_ms` / `image_duration_s` = how long that image pair was on screen (both heatmaps visible → click); `shown_at` / `timestamp` =
 when the pair appeared / was clicked (ISO time).
 
 Per participant (JSON `summary` + repeated on every CSV row), in seconds:
@@ -144,6 +145,6 @@ Per participant (JSON `summary` + repeated on every CSV row), in seconds:
 | `duration_trials_excl_break_s` | trials minus break |
 | `duration_end_check_s` | end check shown → submitted |
 | `duration_demographics_s` | demographics shown → submitted |
-| `rt_median_ms`, `rt_mean_ms`, `rt_min_ms`, `rt_max_ms` | over the 39 real pairs |
+| `image_duration_median_ms`, `_mean_ms`, `_min_ms`, `_max_ms` | over the 39 real pairs |
 
 All based on timestamps, so they stay correct if someone reloads mid-study.
