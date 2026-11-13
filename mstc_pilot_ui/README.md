@@ -25,29 +25,27 @@ the task itself never breaks character to ask something unrelated to legibility.
 
 ## Comprehension check (Prolific-compliant)
 
-Flow: welcome → instructions ⇄ **check 1** → 2 practice pairs → 30 screens (break halfway) → instructions ⇄
-**check 2** → debrief → background → end. "Back" works between instructions and the check (participants must
-be free to re-read); once practice/the main pairs have started there's no going back.
+Flow: welcome → instructions ⇄ **check** → 2 practice pairs → 24 screens (break halfway) → debrief →
+background → end. "Back" works between instructions and the check (participants must be free to re-read);
+once practice/the main pairs have started there's no going back.
+
+Shown once, right after the instructions, before practice -- never a second time. Prolific's policy requires
+comprehension checks to be given at the start of the study and doesn't provide for repeating one later, so
+there's no second pass after the main task.
 
 * **Framing:** the instructions never mention AI or models and explicitly say not to try to interpret the heatmaps.
-* **Questions** (4, multiple choice, option order shuffled per participant, same order in both checks). Every
-  correct answer is stated explicitly in the instructions; wrong options are plausible misreadings: what you
-  judge on each page, whether you need to interpret the heatmaps, how you give your answer, what to do when a
-  photo repeats.
-* **Check 1 = gate**, shown right after the instructions, before practice. 2 attempts; after a wrong 1st try the
-  wrong questions are marked (answers not revealed) and people can go back to the instructions. Wrong again →
-  screen-out page asking them to return the study on Prolific ("Cancel participation"), or redirect to a separate
-  completion code if `prolific.screenOutUrl` is set. Prolific's rules: free to re-read, ≥2 chances, at the start,
-  no free text, **never rejected**.
-* **Check 2 = data-quality flag only**, the identical two pages again right after the last pair (same rules, two
-  chances), but nobody is screened out here. A question answered wrong on the **first** try in both checks sets
-  `exclude_comprehension = true` (analysis only; payment is not affected).
+* **Questions** (4, multiple choice, option order shuffled per participant). Every correct answer is stated
+  explicitly in the instructions; wrong options are plausible misreadings: what you judge on each page, whether
+  you need to interpret the heatmaps, how you give your answer, what to do when a photo repeats.
+* **Gate**: 2 attempts; after a wrong 1st try the wrong questions are marked (answers not revealed) and people
+  can go back to the instructions. Wrong again → screen-out page asking them to return the study on Prolific
+  ("Cancel participation"), or redirect to a separate completion code if `prolific.screenOutUrl` is set.
+  Prolific's rules: free to re-read, ≥2 chances, at the start, no free text, **never rejected**.
 * Correct answers are never marked on screen.
 * Saved per participant (JSON `summary` + repeated on every participant CSV row, prefixed `sum_`):
-  `check1_attempts`, `check1_passed`, `check1_screened_out`, `check1_first_try_wrong`, `check2_attempts`,
-  `check2_first_try_wrong`, `comp_wrong_both_times`, `exclude_comprehension`. Full answers per attempt are in the
-  JSON (`S.comp`, `S.compEndAttempts`).
-* Toggle with `comprehension` in `config.js`; set to `false` to skip both checks entirely.
+  `check1_attempts`, `check1_passed`, `check1_screened_out`, `check1_first_try_wrong`. Full answers per attempt
+  are in the JSON (`S.comp`).
+* Toggle with `comprehension` in `config.js`; set to `false` to skip the check entirely.
 
 ## Hidden attention checks
 
@@ -136,11 +134,10 @@ Per session: `mstc_pilot_<code>_<start>.json`, `…_trials.csv`, `…_participan
 
 **participant.csv**, one row: IDs, timings, device (`env_*`), background (`bg_*`), debrief (`post_*`),
 and a summary (`sum_*`: attention passed/failed, `valid`, repeat consistency, left-choice rate, median RT per
-third, tab-hidden count, comprehension check 1/2 results, and a seconds-based duration breakdown --
-`duration_total_s`, `duration_main_s`, `duration_check1_s` (instructions + check 1), `duration_break_s`,
-`duration_trials_only_s` (main trials minus the break), `duration_check2_s` (instructions + check 2),
-`duration_demographics_s`, and `image_duration_median_s`/`_mean_s`/`_min_s`/`_max_s` over the main pairs,
-all derived from `rt_ms`).
+third, tab-hidden count, comprehension check results, and a seconds-based duration breakdown --
+`duration_total_s`, `duration_main_s`, `duration_check1_s` (instructions + check), `duration_break_s`,
+`duration_trials_only_s` (main trials minus the break), `duration_demographics_s`, and
+`image_duration_median_s`/`_mean_s`/`_min_s`/`_max_s` over the main pairs, all derived from `rt_ms`).
 
 **.json** has everything above plus the planned sequence, all interaction events, the balance report and the config.
 
