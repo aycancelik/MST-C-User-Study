@@ -179,6 +179,7 @@
       case "post": return CFG.askDebrief === false ? (setPhase("bg"), route()) : show("s-post");
       case "bg": return CFG.askBackground === false ? (setPhase("end"), finish()) : show("s-bg");
       case "end": return finish();
+      default: setPhase("post"); return route(); // stale phase from a session saved before the end check was removed (e.g. "instr_end") -> skip straight to debrief
     }
   }
 
