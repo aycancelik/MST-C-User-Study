@@ -14,7 +14,8 @@ window.STUDY_CONFIG = {
   nMain: 20,             // distinct pairs per person -> 40 heatmap images shown in the main task
   nRepeats: 0,           // off: repeatLag below needs far more main trials than 20 to have room to place a repeat
   repeatLag: [30, 60],   // repeat comes this many main trials after its original (unused while nRepeats is 0)
-  attentionChecks: 10,   // hidden checks: real Grad-CAM vs pixel-shuffled copy -- the main quality signal now
+  attentionChecks: 4,    // hidden checks: most structurally-compact heatmap vs. a pixel-shuffled copy of it --
+                          // the main quality signal. ~17% of the 24 screens; higher felt too frequent for 20 main pairs
   breakAt: 0.5,          // short break halfway (the instructions page promises one)
   showPhoto: true,       // original photo above the two heatmaps -- on now that all 24 images have input.png
   overlay: false,        // heatmaps alpha-blended on the photo instead of plain maps

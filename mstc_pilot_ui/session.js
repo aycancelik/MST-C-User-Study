@@ -161,8 +161,8 @@
     // hidden attention checks: the most structurally-compact (highest MST-C) heatmap available
     // per image/model vs. the same map pixel-shuffled -- see build_pilot_trials.py for why that
     // beats a hand-picked image or a method fixed in advance. One at a random spot in each
-    // tenth of the session; models rotated (4/3/3), real side 50/50.
-    const nA = Math.min(cfg.attentionChecks ?? 10, (DATA.catch || []).length);
+    // 1/nth of the session (n = how many are drawn); models rotated evenly, real side 50/50.
+    const nA = Math.min(cfg.attentionChecks ?? 4, (DATA.catch || []).length);
     if (nA) {
       const byModel = {};
       shuffle(DATA.catch, rnd).forEach((c) => (byModel[c.model] = byModel[c.model] || []).push(c));
