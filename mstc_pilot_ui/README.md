@@ -19,7 +19,7 @@ the task itself never breaks character to ask something unrelated to legibility.
 | per person | count | what it measures |
 |---|---|---|
 | main pairs | 20 | 40 heatmap images shown, |ΔMST-C| bins as close to even as the pool allows |
-| hidden attention checks | 10 | real Grad-CAM vs. pixel-shuffled copy, the main quality signal |
+| hidden attention checks | 10 | most structurally-compact heatmap available vs. pixel-shuffled copy, the main quality signal |
 | practice | 2 | example image that is not in the pool, excluded from analysis |
 | **total** | **32 screens** | ≈ 10 min |
 
@@ -48,6 +48,18 @@ be free to re-read); once practice/the main pairs have started there's no going 
   `check2_first_try_wrong`, `comp_wrong_both_times`, `exclude_comprehension`. Full answers per attempt are in the
   JSON (`S.comp`, `S.compEndAttempts`).
 * Toggle with `comprehension` in `config.js`; set to `false` to skip both checks entirely.
+
+## Hidden attention checks
+
+A catch trial pairs the most structurally-compact heatmap available for an image/model (the one with the
+highest MST-C score -- MST-C literally stands for Structural Compactness, so this is the most concentrated,
+clearest heatmap on disk for that image, whichever method it happens to come from) against the *same* map
+with its pixels shuffled (same colours, no structure, i.e. static). Picking by score, not a method fixed in
+advance and not a hand-picked image, keeps the choice objective while guaranteeing the real side is an obvious
+pick next to the fully-scrambled copy -- which is the contrast the check depends on. They look like normal
+trials; participants are never told about them. 5 per model (`--catch-per-model` in `build_pilot_trials.py`),
+real side balanced 50/50, one at a random spot in each tenth of the session. Only `?demo=1` labels them
+(dashed outline + "HIDDEN ATTENTION CHECK" in the top bar). Regenerate with `build_pilot_trials.py` (below).
 
 Per trial we log: response time (from the moment photo + both heatmaps are decoded), mouse vs. keyboard, image load
 time, time the tab was hidden, window blurs, viewport. Order is shuffled per person (seeded by the participant code),

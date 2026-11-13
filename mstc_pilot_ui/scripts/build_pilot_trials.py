@@ -12,7 +12,8 @@ one image per class), not a single ImageNet class: pass its `selected_scores.csv
 root you download class folders into (e.g. one per class under ~/Downloads).
 
 Also writes:
-  * hidden attention-check stimuli: real Grad-CAM vs. the same map with its pixels shuffled
+  * hidden attention-check stimuli: for each model, the highest-MST-C (most structurally
+    compact) heatmap available per image, vs. the same map with its pixels shuffled
   * one intro / practice trial, drawn from the same 24 images and excluded from the real pool
     (so nobody is primed on a real trial) unless --practice-image overrides it
 
@@ -176,21 +177,36 @@ def main() -> None:
         print(f"note: {len(no_photo)}/{len(images) + 1} images have no input.png (original photo). "
               "Set showPhoto: false in config.js, or the UI will show a broken image there.")
 
-    # ---- hidden attention checks: real Grad-CAM vs. pixel-shuffled copy ----
+    # ---- hidden attention checks: the most structurally-compact (highest MST-C) heatmap
+    # available vs. the same map with its pixels shuffled. MST-C stands for Structural
+    # Compactness, so the highest-scoring heatmap for a given image x model is, by the
+    # project's own metric, the most concentrated / clearest one on disk -- picking by score
+    # (not a method fixed in advance, not a hand-picked image) guarantees the "real" side
+    # reads as an obvious choice next to the fully-scrambled copy, which is the contrast the
+    # check depends on. The scrambled copy itself is already maximally noisy: shuffling every
+    # pixel destroys all spatial structure while keeping the same colours.
     catch_dir = assets / "catch"
     catch_dir.mkdir()
     nprng = np.random.default_rng(args.seed)
     catch = []
     for m in MODELS:
-        for img in rng.sample(images, args.catch_per_model):
+        # for every candidate image, its single best (highest-MST-C) method under this model
+        best_per_image = []
+        for img in images:
             info = selected[img]
-            arr = np.array(Image.open(heatmap_path(src, info, img, m, "gradcam", args.method_suffix)))
+            score, method = max((info["scores"][(m, x)], x) for x in METHODS)
+            best_per_image.append((score, method, img))
+        best_per_image.sort(reverse=True)  # highest compactness first
+        for score, method, img in best_per_image[: args.catch_per_model]:
+            info = selected[img]
+            arr = np.array(Image.open(heatmap_path(src, info, img, m, method, args.method_suffix)))
             flat = arr.reshape(-1, arr.shape[-1])
             scr = flat[nprng.permutation(len(flat))].reshape(arr.shape)
-            name = f"{img[-8:]}_{m}"
+            name = f"{img[-8:]}_{m}_{method}"
             Image.fromarray(arr).save(catch_dir / f"{name}_real.png")
             Image.fromarray(scr).save(catch_dir / f"{name}_scrambled.png")
-            catch.append({"id": f"catch_{name}", "image": img, "model": m,
+            catch.append({"id": f"catch_{name}", "image": img, "model": m, "method": method,
+                          "mstc": round(score, 4),
                           "real": f"assets/catch/{name}_real.png",
                           "scrambled": f"assets/catch/{name}_scrambled.png"})
 

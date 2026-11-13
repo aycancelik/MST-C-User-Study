@@ -445,7 +445,7 @@
         o.chosen_mstc = r.chosen_side === "L" ? r.mstc_left : r.mstc_right;
         o.chose_higher_mstc = r.mstc_left === r.mstc_right ? null : o.chosen_mstc === Math.max(r.mstc_left, r.mstc_right);
       }
-      if (r.kind === "attention") o.attention_pass = r.chosen_method === "gradcam_real";
+      if (r.kind === "attention") o.attention_pass = r.chosen_method.endsWith("_real"); // method varies per image now, not just gradcam
       if (r.kind === "repeat" && byUid[r.repeat_of]) {
         o.original_chosen_method = byUid[r.repeat_of].chosen_method;
         o.repeat_consistent = o.original_chosen_method === r.chosen_method;
