@@ -116,13 +116,17 @@ https://aycancelik.github.io/MST-C-User-Study/mstc_pilot_ui/?PROLIFIC_PID={{%PRO
 With `PROLIFIC_PID` in the URL the ID field is locked, no files are downloaded, and after saving the person is
 redirected to the completion URL. Optional `failedChecksUrl` = a second completion path for sessions that fail
 ≥ `failThreshold` (2) checks. Run Prolific's preview once and confirm the files arrive in OSF.
-For the main study, lower `nMain` / `nRepeats` / `attentionChecks` to what the pilot says is sustainable.
+For the main study, lower `nMain` / `nRepeats` / `attentionChecks` to what the pilot says is sustainable, and
+set `study` in `config.js` to something other than `"pilot_study"` (e.g. `"main_study"`) -- it's saved on every
+row and in the Firebase payload, precisely so pilot and main-study data can share the same Firebase
+project/table and still be told apart afterwards.
 
 ## Output
 
 Per session: `mstc_pilot_<code>_<start>.json`, `…_trials.csv`, `…_participant.csv`.
 
 **trials.csv**, one row per answered screen (`kind` = practice | main | repeat | attention):
+`study` (set by us in `config.js`, not derived from anything in the URL -- `"pilot_study"` for now),
 `screen` (position in the session), `main_index`, `trial_id`, `repeat_of`, `repeat_lag`, `image`, `model`,
 `method_a/b`, `method_left/right`, `mstc_left/right`, `abs_delta_mstc`, `bin`, `chosen_side`, `chosen_method`,
 `chosen_mstc`, `chose_higher_mstc`, `attention_target`, `attention_pass`, `original_chosen_method`,

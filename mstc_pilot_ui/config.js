@@ -4,6 +4,12 @@ window.STUDY_CONFIG = {
   studyName: "MST-C heatmap legibility (pilot)",
   appVersion: "pilot-1.0",
 
+  // Short, stable tag for this batch of data -- saved as its own "study" column on every row
+  // (trials.csv, participant.csv, the JSON, and the Firebase payload), so the pilot and the
+  // real study can share one Firebase project/table and still be told apart later. Set by us,
+  // never derived from the URL. Change this (e.g. to "main_study") before running the real study.
+  study: "pilot_study",
+
   // ---- session design ----
   nMain: 20,             // distinct pairs per person -> 40 heatmap images shown in the main task
   nRepeats: 0,           // off: repeatLag below needs far more main trials than 20 to have room to place a repeat

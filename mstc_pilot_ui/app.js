@@ -143,7 +143,7 @@
     S = store.get(KEY(pid));
     if (!S || S.n_screens !== SESS.seq.length) {
       S = {
-        app_version: VERSION, study: CFG.studyName, pid, id_source: source,
+        app_version: VERSION, study: CFG.study || "pilot_study", study_name: CFG.studyName, pid, id_source: source,
         study_id: Q.get("STUDY_ID") || "", session_id: Q.get("SESSION_ID") || "",
         mode: source === "prolific" ? "prolific" : "pilot", demo: DEMO,
         started: nowIso(), consent_at: nowIso(), finished: null,
@@ -429,7 +429,7 @@
   });
 
   // ---------- export ----------
-  const TRIAL_COLS = ["participant_id", "id_source", "study_id", "session_id", "mode", "app_version",
+  const TRIAL_COLS = ["participant_id", "study", "id_source", "study_id", "session_id", "mode", "app_version",
     "screen", "main_index", "kind", "uid", "trial_id", "repeat_of", "repeat_lag", "image", "model",
     "method_a", "method_b", "method_left", "method_right", "mstc_left", "mstc_right", "abs_delta_mstc", "bin",
     "chosen_side", "chosen_method", "chosen_mstc", "chose_higher_mstc", "attention_target", "attention_pass",
@@ -438,7 +438,7 @@
 
   function trialRows() {
     const byUid = {}; S.responses.forEach((r) => (byUid[r.uid] = r));
-    const ids = { participant_id: S.pid, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode, app_version: S.app_version };
+    const ids = { participant_id: S.pid, study: S.study, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode, app_version: S.app_version };
     const rows = [...S.practice, ...S.responses].map((r) => {
       const o = { ...ids, ...r };
       if (r.mstc_left != null && r.mstc_right != null) {
@@ -514,7 +514,7 @@
   }
 
   function participantRow(sum) {
-    const o = { participant_id: S.pid, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode,
+    const o = { participant_id: S.pid, study: S.study, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode,
       app_version: S.app_version, started: S.started, finished: S.finished, main_start: S.timings.main_start, main_end: S.timings.main_end };
     Object.entries(S.env).forEach(([k, v]) => (o["env_" + k] = v));
     Object.entries(S.background || {}).forEach(([k, v]) => (o["bg_" + k] = v));
@@ -534,7 +534,7 @@
     const stamp = S.started.replace(/[-:]/g, "").replace(/\..*/, "");
     const base = `mstc_pilot_${String(S.pid).replace(/[^\w-]/g, "_")}_${stamp}`;
     const json = {
-      meta: { app_version: S.app_version, study: S.study, participant_id: S.pid, id_source: S.id_source, study_id: S.study_id,
+      meta: { app_version: S.app_version, study: S.study, study_name: S.study_name, participant_id: S.pid, id_source: S.id_source, study_id: S.study_id,
         session_id: S.session_id, mode: S.mode, demo: S.demo, started: S.started, consent_at: S.consent_at, finished: S.finished },
       summary: sum, env: S.env, background: S.background, debrief: S.debrief, breaks: S.breaks,
       comprehension: { check1: S.comp || null, check2_attempts: S.compEndAttempts || [] },
@@ -553,7 +553,7 @@
     const up = CFG.upload || {};
     const targets = [];
     if (up.datapipeExperimentId) targets.push({ url: "https://pipe.jspsych.org/api/data/", body: (f) => ({ experimentID: up.datapipeExperimentId, filename: f.name, data: f.data }) });
-    if (up.url) targets.push({ url: up.url, body: (f) => ({ participant_id: S.pid, filename: f.name, data: f.data }) });
+    if (up.url) targets.push({ url: up.url, body: (f) => ({ participant_id: S.pid, study: S.study, filename: f.name, data: f.data }) });
     for (const tg of targets) for (const f of files) {
       const res = await fetch(tg.url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "*/*" }, body: JSON.stringify(tg.body(f)) });
       if (!res.ok) throw new Error(`${tg.url} → HTTP ${res.status}`);
