@@ -158,7 +158,9 @@
       after[k].forEach((rep) => insertNear(seq, rep, seq.indexOf(main[k]) + 1, 1));
     });
 
-    // hidden attention checks: real Grad-CAM vs pixel-shuffled copy; one at a random spot in each
+    // hidden attention checks: the most structurally-compact (highest MST-C) heatmap available
+    // per image/model vs. the same map pixel-shuffled -- see build_pilot_trials.py for why that
+    // beats a hand-picked image or a method fixed in advance. One at a random spot in each
     // tenth of the session; models rotated (4/3/3), real side 50/50.
     const nA = Math.min(cfg.attentionChecks ?? 10, (DATA.catch || []).length);
     if (nA) {
@@ -171,9 +173,9 @@
       const total = seq.length + picks.length, seg = total / picks.length;
       const spots = picks.map((c, k) => ({ c, k, at: Math.max(4, Math.floor(k * seg + rnd() * seg)) }));
       spots.sort((x, y) => y.at - x.at).forEach(({ c, k, at }) => {
-        const realLeft = sides[k] === "L";
+        const realLeft = sides[k] === "L", method = c.method || "gradcam";
         insertNear(seq, { uid: `a${String(k + 1).padStart(2, "0")}`, kind: "attention", trial_id: c.id, image: c.image, model: c.model,
-          target: sides[k], left: realLeft ? "gradcam_real" : "gradcam_scrambled", right: realLeft ? "gradcam_scrambled" : "gradcam_real",
+          target: sides[k], left: realLeft ? `${method}_real` : `${method}_scrambled`, right: realLeft ? `${method}_scrambled` : `${method}_real`,
           Lsrc: realLeft ? c.real : c.scrambled, Rsrc: realLeft ? c.scrambled : c.real }, Math.min(at, seq.length), 4);
       });
     }

@@ -1,7 +1,8 @@
 /* MST-C pilot: static front end (GitHub Pages friendly).
  *
- * Flow: welcome/consent -> instructions -> 2 practice pairs
- *       -> main sequence (150 pairs + 12 repeats + 10 hidden checks, focus check-ins) -> debrief -> background -> save
+ * Flow: welcome/consent -> instructions -> comprehension check (gate, 2 attempts) -> 2 practice pairs
+ *       -> main sequence (20 pairs + 10 hidden checks) -> instructions + comprehension check again
+ *       (identical, flag only) -> debrief -> background -> save
  *
  * Session content comes from session.js (seeded by participant ID, so a reload rebuilds the same session).
  * Progress is autosaved to localStorage after every click; a reload resumes where the person left off.
@@ -142,7 +143,7 @@
     S = store.get(KEY(pid));
     if (!S || S.n_screens !== SESS.seq.length) {
       S = {
-        app_version: VERSION, study: CFG.studyName, pid, id_source: source,
+        app_version: VERSION, study: CFG.study || "pilot_study", study_name: CFG.studyName, pid, id_source: source,
         study_id: Q.get("STUDY_ID") || "", session_id: Q.get("SESSION_ID") || "",
         mode: source === "prolific" ? "prolific" : "pilot", demo: DEMO,
         started: nowIso(), consent_at: nowIso(), finished: null,
@@ -168,11 +169,14 @@
 
   function route() {
     switch (S.phase) {
-      case "instr": return initInstructions();
+      case "instr": return initInstructions("start");
+      case "comp": return showComp(S.compStage || "start");
+      case "screenout": return showScreenOut();
       case "practice": return S.pidx < SESS.practice.length ? runTrial() : (setPhase("practice_done"), route());
       case "practice_done": $("#pd-n").textContent = N(); return show("s-practice-done");
       case "main": return runTrial();
       case "break": return showBreak();
+      case "instr_end": return initInstructions("end");
       case "post": return CFG.askDebrief === false ? (setPhase("bg"), route()) : show("s-post");
       case "bg": return CFG.askBackground === false ? (setPhase("end"), finish()) : show("s-bg");
       case "end": return finish();
@@ -182,19 +186,39 @@
   // ---------- background (asked at the end) ----------
   $("#f-bg").addEventListener("submit", (e) => {
     e.preventDefault();
-    const v = checkForm(e.target, ["age_range", "education", "ai_familiarity", "ai_decision_familiarity", "colour_vision"], $("#bg-err"));
-    if (!v) return;
+    const f = e.target;
+    const v = checkForm(f, ["education", "colour_vision"], $("#bg-err"));
+    const age = +f.age.value;
+    const basicOk = f.age.value !== "" && age >= 18 && age <= 100 && f.nationality.value.trim() && f.occupation.value.trim();
+    if (!v || !basicOk) { $("#bg-err").hidden = false; return; }
     S.background = v; setPhase("end"); finish();
   });
+  // nationality suggestions: country names from the browser (ISO codes), so spelling stays consistent
+  (() => {
+    try {
+      const codes = "AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI KH CM CA CV CF TD CL CN CO KM CG CD CR CI HR CU CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HK HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI XK KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MR MU MX FM MD MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG KP MK NO OM PK PW PS PA PG PY PE PH PL PT PR QA RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA KR SS ES LK SD SR SE CH SY TW TJ TZ TH TL TG TO TT TN TR TM TV UG UA AE GB US UY UZ VU VA VE VN YE ZM ZW".split(" ");
+      const dn = new Intl.DisplayNames(["en"], { type: "region" });
+      const dl = document.createElement("datalist"); dl.id = "countries";
+      dl.innerHTML = codes.map((c) => dn.of(c)).sort().map((n) => `<option value="${n}">`).join("");
+      document.body.appendChild(dl);
+    } catch {}
+  })();
 
   // ---------- instructions (paged) ----------
-  function initInstructions() {
+  function initInstructions(stage) {
+    stage = stage || "start";
+    S.compStage = stage;
+    if (stage === "start") S.timings.instr_at = S.timings.instr_at || nowIso(); // "instr" is the initial phase, so setPhase() never ran for it
+    save();
     const ex = DATA.practice && DATA.practice[0];
     if (ex) $("#mock-trial").innerHTML = `
       ${CFG.showPhoto === false ? "" : `<img class="mock-photo" src="${photo(ex.image)}" alt="example photo">`}
       <div class="mock-pair"><img src="assets/${ex.image}/${ex.model}/${ex.method_a}.png" alt="example heatmap"><img src="assets/${ex.image}/${ex.model}/${ex.method_b}.png" alt="example heatmap"></div>`;
     $("#i-ntrials").textContent = N();
     $("#i-quality").hidden = !CFG.mentionQualityChecks;
+    $("#instr-practice-note").textContent = stage === "end"
+      ? "Just a couple of quick questions to confirm, then you're done."
+      : "You'll start with 2 practice pairs (they don't count), right after a couple of quick questions about these instructions. Please do the study in one go, with this tab in the foreground.";
     const pages = $$("#s-instr .page");
     $("#steps").innerHTML = pages.map(() => "<i></i>").join("");
     let k = 0;
@@ -202,17 +226,116 @@
       pages.forEach((pg, i) => (pg.hidden = i !== k));
       [...$("#steps").children].forEach((d, i) => d.classList.toggle("on", i <= k));
       $("#btn-back").style.visibility = k ? "visible" : "hidden";
-      $("#btn-fwd").textContent = k === pages.length - 1 ? "Start practice" : "Next";
+      $("#btn-fwd").textContent = k < pages.length - 1 ? "Next"
+        : CFG.comprehension === false ? (stage === "start" ? "Start practice" : "Continue") : "Continue to the quick check";
       window.scrollTo(0, 0);
     };
     $("#btn-back").onclick = () => { if (k > 0) { k--; render(); } };
     $("#btn-fwd").onclick = () => {
       if (k < pages.length - 1) { k++; render(); return; }
-      setPhase("practice"); route();
+      if (CFG.comprehension === false) {
+        if (stage === "start") { setPhase("practice"); route(); }
+        else { S.compEndDoneAt = S.compEndDoneAt || nowIso(); setPhase("post"); route(); }
+        return;
+      }
+      setPhase("comp"); route();
     };
     show("s-instr"); render();
   }
   $("#btn-go").onclick = () => { setPhase("main"); S.timings.main_start = S.timings.main_start || nowIso(); save(); route(); };
+
+  // ---------- comprehension check (Prolific-compliant) ----------
+  // CHECK 1 (start): gate. 2 attempts; after a wrong 1st try the wrong questions are marked (not the
+  //   answers). Failing twice -> screen-out page asking them to return the study (never a rejection).
+  // CHECK 2 (end): the identical two pages again after the last pair, same two chances, but nobody is
+  //   screened out. A question wrong on the FIRST try in both checks flags the person for exclusion
+  //   from the ANALYSIS only (payment unaffected).
+  // Every correct answer is stated explicitly in the instructions; wrong options are plausible misreadings.
+  const COMP = [
+    { id: "task", q: "What are you asked to do on each page?",
+      opts: ["Choose the heatmap that's easier to read and more visually appealing", "Choose the heatmap that best matches the photo", "Work out what the heatmap is highlighting", "Rate how accurate each heatmap is"] },
+    { id: "interpret", q: "Do you need to figure out what the heatmaps mean?",
+      opts: ["No -- just judge how easy each one is to read and how it looks", "Yes, I should work out what each heatmap highlights", "Yes, I should match each heatmap to the photo", "No, I should ignore the heatmaps entirely"] },
+    { id: "answer", q: "How do you give your answer?",
+      opts: ["Click the heatmap I prefer (or use the arrow keys); the next pair appears right away", "Pick a heatmap, then click a “Next” button", "Rate both heatmaps on a scale", "Type in which heatmap I prefer"] },
+    { id: "repeat", q: "A photo you've already seen comes back with different heatmaps. What do you do?",
+      opts: ["Judge the new pair on its own", "Pick the same side as before", "Pick the heatmap most similar to my earlier choice", "Skip it, since I've seen it already"] },
+  ]; // first option = correct; the order shown is shuffled per participant (same order in both checks)
+
+  function showComp(stage) {
+    S.compStage = stage; save();
+    const rnd = window.MSTCSession.mulberry32(window.MSTCSession.hash("comp|" + S.pid));
+    const start = stage === "start";
+    const tries = start ? (S.comp ? S.comp.attempts : []) : (S.compEndAttempts || []);
+    $("#comp-title").textContent = `Please answer these ${COMP.length} questions about the instructions`;
+    const shownKey = start ? "comp_shown_at" : "comp_end_shown_at";
+    if (!S.timings[shownKey]) { S.timings[shownKey] = nowIso(); save(); }
+    const last = tries.length === 1 ? tries[0] : null; // after a failed 1st attempt
+    $("#comp-msg").hidden = !last;
+    if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). Please re-read the instructions, then try again. <b>This is your last attempt.</b>";
+    $("#comp-qs").innerHTML = COMP.map((c) => {
+      const order = window.MSTCSession.shuffle(c.opts.map((_, i) => i), rnd);
+      const wrong = last && !last.correct[c.id];
+      const prev = last ? last.answers_idx[c.id] : null;
+      return `<fieldset class="q${wrong ? " wrong" : ""}" data-q="${c.id}"><legend>${c.q}</legend>` +
+        order.map((i) => `<label class="opt"><input type="radio" name="${c.id}" value="${i}"${prev === i && !wrong ? " checked" : ""}><span>${c.opts[i]}</span></label>`).join("") +
+        `<p class="hint">Not quite. Have another look at the instructions (&ldquo;Back to the instructions&rdquo;).</p></fieldset>`;
+    }).join("");
+    $("#comp-err").hidden = true;
+    show("s-comp");
+    if (last) setTimeout(() => $("#comp-msg").scrollIntoView({ block: "center" }), 0);
+  }
+  $("#btn-comp-back").onclick = () => { setPhase(S.compStage === "end" ? "instr_end" : "instr"); route(); };
+  $("#f-comp").addEventListener("change", (e) => { const q = e.target.closest(".q"); if (q) q.classList.remove("wrong", "missing"); });
+  $("#f-comp").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const answers = {}, correct = {};
+    let missing = false;
+    COMP.forEach((c) => {
+      const el = e.target.querySelector(`input[name="${c.id}"]:checked`);
+      e.target.querySelector(`[data-q="${c.id}"]`).classList.toggle("missing", !el);
+      if (!el) { missing = true; return; }
+      answers[c.id] = +el.value; correct[c.id] = +el.value === 0;
+    });
+    $("#comp-err").hidden = !missing;
+    if (missing) return;
+    const rec = {
+      at: nowIso(), answers_idx: answers, correct, n_wrong: Object.values(correct).filter((v) => !v).length,
+      answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, COMP.find((c) => c.id === k).opts[v]])),
+    };
+    if (S.compStage === "end") {
+      S.compEndAttempts = S.compEndAttempts || [];
+      S.compEndAttempts.push(rec);
+      S.compEnd = S.compEndAttempts[0];
+      if (rec.n_wrong && S.compEndAttempts.length < 2) { save(); return showComp("end"); }
+      S.compEndDoneAt = rec.at; setPhase("post"); return route();
+    }
+    S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
+    S.comp.attempts.push(rec);
+    if (!rec.n_wrong) { S.comp.passed = true; save(); setPhase("practice"); return route(); }
+    if (S.comp.attempts.length >= 2) { S.comp.screened_out = true; S.finished = nowIso(); save(); setPhase("screenout"); return route(); }
+    save(); showComp("start");
+  });
+
+  // ---------- screen-out (failed the start check twice) ----------
+  async function showScreenOut() {
+    const P = CFG.prolific || {};
+    if (S.id_source === "prolific" && P.screenOutUrl) {
+      if (P.screenOutCode) { $("#so-completion-code").textContent = P.screenOutCode; $("#so-code-box").hidden = false; }
+      const a = $("#btn-screenout"); a.href = P.screenOutUrl; a.hidden = false;
+      $("#so-how").innerHTML = "Please click the button below to go back to Prolific.";
+    } else if (S.id_source === "prolific") {
+      $("#so-how").innerHTML = "Please <b>return your submission</b>: close this tab, go back to Prolific and click <b>“Cancel participation”</b>.";
+    } else {
+      $("#so-how").innerHTML = "Thank you for trying the pilot.";
+    }
+    show("s-screenout");
+    if (CFG.upload && (CFG.upload.datapipeExperimentId || CFG.upload.url) && !S.upload?.ok) {
+      try { await upload(buildFiles()); S.upload = { ok: true, at: nowIso() }; }
+      catch (e) { S.upload = { ok: false, at: nowIso(), error: String(e.message || e) }; }
+      save();
+    }
+  }
 
   // ---------- trial ----------
   function currentItem() { return S.phase === "practice" ? SESS.practice[S.pidx] : SESS.seq[S.idx]; }
@@ -279,7 +402,11 @@
     cur = null;
     const done = S.idx >= N();
     if (CFG.breakAt && !S.breakShown && S.idx === Math.round(N() * CFG.breakAt)) { setPhase("break"); return showBreak(); }
-    if (done) { S.timings.main_end = S.timings.main_end || nowIso(); setPhase("post"); return route(); }
+    if (done) {
+      S.timings.main_end = S.timings.main_end || nowIso();
+      if (CFG.comprehension !== false && !S.compEndDoneAt) { setPhase("instr_end"); return route(); }
+      setPhase("post"); return route();
+    }
     S.phase = "main"; save(); runTrial();
   }
 
@@ -302,7 +429,7 @@
   });
 
   // ---------- export ----------
-  const TRIAL_COLS = ["participant_id", "id_source", "study_id", "session_id", "mode", "app_version",
+  const TRIAL_COLS = ["participant_id", "study", "id_source", "study_id", "session_id", "mode", "app_version",
     "screen", "main_index", "kind", "uid", "trial_id", "repeat_of", "repeat_lag", "image", "model",
     "method_a", "method_b", "method_left", "method_right", "mstc_left", "mstc_right", "abs_delta_mstc", "bin",
     "chosen_side", "chosen_method", "chosen_mstc", "chose_higher_mstc", "attention_target", "attention_pass",
@@ -311,14 +438,14 @@
 
   function trialRows() {
     const byUid = {}; S.responses.forEach((r) => (byUid[r.uid] = r));
-    const ids = { participant_id: S.pid, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode, app_version: S.app_version };
+    const ids = { participant_id: S.pid, study: S.study, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode, app_version: S.app_version };
     const rows = [...S.practice, ...S.responses].map((r) => {
       const o = { ...ids, ...r };
       if (r.mstc_left != null && r.mstc_right != null) {
         o.chosen_mstc = r.chosen_side === "L" ? r.mstc_left : r.mstc_right;
         o.chose_higher_mstc = r.mstc_left === r.mstc_right ? null : o.chosen_mstc === Math.max(r.mstc_left, r.mstc_right);
       }
-      if (r.kind === "attention") o.attention_pass = r.chosen_method === "gradcam_real";
+      if (r.kind === "attention") o.attention_pass = r.chosen_method.endsWith("_real"); // method varies per image now, not just gradcam
       if (r.kind === "repeat" && byUid[r.repeat_of]) {
         o.original_chosen_method = byUid[r.repeat_of].chosen_method;
         o.repeat_consistent = o.original_chosen_method === r.chosen_method;
@@ -335,7 +462,19 @@
     const hm = rows.filter((r) => r.chose_higher_mstc != null && r.kind === "main");
     const failed = att.filter((r) => !r.attention_pass).length;
     const dur = (a, b) => (a && b ? Math.round((Date.parse(b) - Date.parse(a)) / 1000) : null);
+    const first = S.comp && S.comp.attempts[0], end = S.compEnd;
+    const wrongFirst = first ? COMP.filter((c) => !first.correct[c.id]).map((c) => c.id) : [];
+    const wrongEnd = end ? COMP.filter((c) => !end.correct[c.id]).map((c) => c.id) : [];
+    const wrongBoth = wrongFirst.filter((q) => wrongEnd.includes(q));
     return {
+      check1_attempts: S.comp ? S.comp.attempts.length : 0,
+      check1_passed: !!(S.comp && S.comp.passed),
+      check1_screened_out: !!(S.comp && S.comp.screened_out),
+      check1_first_try_wrong: wrongFirst.join(";"),
+      check2_attempts: (S.compEndAttempts || []).length,
+      check2_first_try_wrong: wrongEnd.join(";"),
+      comp_wrong_both_times: wrongBoth.join(";"),
+      exclude_comprehension: wrongBoth.length > 0,
       n_main_answered: main.length, n_repeat_answered: rep.length,
       attention_total: att.length, attention_passed: att.length - failed, attention_failed: failed,
       valid: failed < (CFG.prolific?.failThreshold ?? 2),
@@ -348,12 +487,34 @@
       total_hidden_s: Math.round(rows.reduce((a, r) => a + (r.hidden_ms || 0), 0) / 100) / 10,
       n_resumes: S.events.filter((e) => e.type === "resume").length,
       duration_total_s: dur(S.started, S.finished), duration_main_s: dur(S.timings.main_start, S.timings.main_end),
+      ...durations(main),
       simulated: rows.some((r) => r.simulated),
     };
   }
 
+  // seconds-based duration breakdown (mirrors mstc_mock_ui): instructions+check timings, break-only
+  // time, and per-image timing stats. All based on ISO timestamps, so they survive reloads/resumes.
+  function durations(main) {
+    const dur = (a, b) => (a && b ? Math.round((Date.parse(b) - Date.parse(a)) / 1000) : null);
+    const breakTotalS = (S.breaks || []).reduce((a, b) => a + (b.duration_s || 0), 0);
+    const trialsS = dur(S.timings.main_start, S.timings.main_end);
+    const rtS = main.map((r) => r.rt_ms).filter((v) => v != null).map((v) => v / 1000);
+    const sorted = rtS.slice().sort((a, b) => a - b);
+    return {
+      duration_check1_s: dur(S.timings.instr_at, S.timings.practice_at), // instructions + check 1 (all attempts, incl. going back)
+      duration_break_s: S.breaks && S.breaks.length ? breakTotalS : null,
+      duration_trials_only_s: trialsS != null ? trialsS - breakTotalS : null, // pure time on the pairs
+      duration_check2_s: dur(S.timings.instr_end_at, S.compEndDoneAt), // instructions + check 2 at the end
+      duration_demographics_s: dur(S.timings.bg_at, S.finished),
+      image_duration_median_s: sorted.length ? +sorted[Math.floor(sorted.length / 2)].toFixed(3) : null,
+      image_duration_mean_s: rtS.length ? +(rtS.reduce((a, b) => a + b, 0) / rtS.length).toFixed(3) : null,
+      image_duration_min_s: sorted.length ? +sorted[0].toFixed(3) : null,
+      image_duration_max_s: sorted.length ? +sorted[sorted.length - 1].toFixed(3) : null,
+    };
+  }
+
   function participantRow(sum) {
-    const o = { participant_id: S.pid, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode,
+    const o = { participant_id: S.pid, study: S.study, id_source: S.id_source, study_id: S.study_id, session_id: S.session_id, mode: S.mode,
       app_version: S.app_version, started: S.started, finished: S.finished, main_start: S.timings.main_start, main_end: S.timings.main_end };
     Object.entries(S.env).forEach(([k, v]) => (o["env_" + k] = v));
     Object.entries(S.background || {}).forEach(([k, v]) => (o["bg_" + k] = v));
@@ -373,9 +534,10 @@
     const stamp = S.started.replace(/[-:]/g, "").replace(/\..*/, "");
     const base = `mstc_pilot_${String(S.pid).replace(/[^\w-]/g, "_")}_${stamp}`;
     const json = {
-      meta: { app_version: S.app_version, study: S.study, participant_id: S.pid, id_source: S.id_source, study_id: S.study_id,
+      meta: { app_version: S.app_version, study: S.study, study_name: S.study_name, participant_id: S.pid, id_source: S.id_source, study_id: S.study_id,
         session_id: S.session_id, mode: S.mode, demo: S.demo, started: S.started, consent_at: S.consent_at, finished: S.finished },
       summary: sum, env: S.env, background: S.background, debrief: S.debrief, breaks: S.breaks,
+      comprehension: { check1: S.comp || null, check2_attempts: S.compEndAttempts || [] },
       timings: S.timings, events: S.events, balance: S.balance, config: S.config, data_meta: S.data_meta,
       sequence: SESS.seq.map(({ Lsrc, Rsrc, ...t }) => t),
       trials: rows,
@@ -391,7 +553,7 @@
     const up = CFG.upload || {};
     const targets = [];
     if (up.datapipeExperimentId) targets.push({ url: "https://pipe.jspsych.org/api/data/", body: (f) => ({ experimentID: up.datapipeExperimentId, filename: f.name, data: f.data }) });
-    if (up.url) targets.push({ url: up.url, body: (f) => ({ participant_id: S.pid, filename: f.name, data: f.data }) });
+    if (up.url) targets.push({ url: up.url, body: (f) => ({ participant_id: S.pid, study: S.study, filename: f.name, data: f.data }) });
     for (const tg of targets) for (const f of files) {
       const res = await fetch(tg.url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "*/*" }, body: JSON.stringify(tg.body(f)) });
       if (!res.ok) throw new Error(`${tg.url} → HTTP ${res.status}`);
@@ -490,16 +652,26 @@
       : `<span><b>${t.kind}</b> ${t.uid}${t.repeat_of ? ` (of ${t.repeat_of}, lag ${t.repeat_lag})` : ""} · ${t.image.slice(-8)} · <b>${t.model}</b>${t.bin ? ` · ${t.bin} |Δ|=${t.abs_delta_mstc.toFixed(1)}` : ""}</span>`;
     const forms = S && ["bg", "post"].includes(S.phase);
     const running = S && ["main", "practice", "practice_done", "break"].includes(S.phase);
-    bar.innerHTML = `<span class="pill">DEMO</span><span>pid <b>${S ? S.pid : "–"}</b></span>${info}<span class="spacer"></span>
+    const inComp = S && S.phase === "comp";
+    bar.innerHTML = `<span class="pill">DEMO</span><span>pid <b>${S ? S.pid : "–"}</b></span>${info}
+      ${inComp ? `<span><b>COMPREHENSION CHECK (${S.compStage === "end" ? "end, flag only" : "start, gate"})</b></span>` : ""}
+      <span class="spacer"></span>
       <label><input type="checkbox" id="d-ov" ${CFG.overlay ? "checked" : ""}> overlay</label>
       ${forms ? `<button id="d-form">auto-fill form</button>` : ""}
+      ${inComp ? `<button id="d-comp-right">fill correct</button><button id="d-comp-wrong">fill 1 wrong</button>` : ""}
       ${running ? `<button id="d-10">auto 10</button><button id="d-all">auto all</button>` : ""}
       <button id="d-new">new participant</button>`;
     $("#d-ov").onchange = (e) => { CFG.overlay = e.target.checked; applyOverlay(); };
     const f = $("#d-form"); if (f) f.onclick = autoFill;
+    const dr = $("#d-comp-right"); if (dr) dr.onclick = () => fillComp(0);
+    const dw = $("#d-comp-wrong"); if (dw) dw.onclick = () => fillComp(1);
     const a10 = $("#d-10"); if (a10) a10.onclick = () => auto(10);
     const aAll = $("#d-all"); if (aAll) aAll.onclick = () => auto(1e9);
     $("#d-new").onclick = () => { if (S) store.del(KEY(S.pid)); store.del(LAST); location.href = location.pathname + "?demo=1"; };
+  }
+  function fillComp(nWrong) {
+    COMP.forEach((c, k) => { const v = k < nWrong ? 1 : 0; const el = $(`#f-comp input[name="${c.id}"][value="${v}"]`); if (el) el.checked = true; });
+    $$("#f-comp .q").forEach((q) => q.classList.remove("wrong", "missing"));
   }
   function autoFill() {
     const form = S.phase === "bg" ? $("#f-bg") : $("#f-post");
@@ -508,6 +680,10 @@
     Object.values(groups).forEach((g) => (g[Math.floor(Math.random() * g.length)].checked = true));
     form.querySelectorAll("select").forEach((s) => (s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1))));
     form.querySelectorAll("textarea[required]").forEach((t) => (t.value = t.value || "(auto-filled for demo)"));
+    form.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"])').forEach((i) => {
+      if (i.value) return;
+      i.value = i.type === "number" ? String(18 + Math.floor(Math.random() * 50)) : i.name === "nationality" ? "Germany" : "Researcher";
+    });
     $("#fs-influence").hidden = false;
     form.requestSubmit();
   }

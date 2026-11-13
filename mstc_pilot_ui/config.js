@@ -4,12 +4,18 @@ window.STUDY_CONFIG = {
   studyName: "MST-C heatmap legibility (pilot)",
   appVersion: "pilot-1.0",
 
+  // Short, stable tag for this batch of data -- saved as its own "study" column on every row
+  // (trials.csv, participant.csv, the JSON, and the Firebase payload), so the pilot and the
+  // real study can share one Firebase project/table and still be told apart later. Set by us,
+  // never derived from the URL. Change this (e.g. to "main_study") before running the real study.
+  study: "pilot_study",
+
   // ---- session design ----
   nMain: 20,             // distinct pairs per person -> 40 heatmap images shown in the main task
   nRepeats: 0,           // off: repeatLag below needs far more main trials than 20 to have room to place a repeat
   repeatLag: [30, 60],   // repeat comes this many main trials after its original (unused while nRepeats is 0)
   attentionChecks: 10,   // hidden checks: real Grad-CAM vs pixel-shuffled copy -- the main quality signal now
-  breakAt: null,         // e.g. 0.5 for a break halfway
+  breakAt: 0.5,          // short break halfway (the instructions page promises one)
   showPhoto: true,       // original photo above the two heatmaps -- on now that all 24 images have input.png
   overlay: false,        // heatmaps alpha-blended on the photo instead of plain maps
   overlayOpacity: 0.6,
@@ -17,6 +23,13 @@ window.STUDY_CONFIG = {
   secondsPerTrial: 7,    // only for the "about N minutes" text
   mentionQualityChecks: true, // instructions say "a few quality checks are included" (doesn't say what they are)
   minViewportWidth: 900, // narrower screens get a "please use a laptop/desktop" warning (recorded)
+
+  // ---- comprehension check (Prolific-compliant) ----
+  // 4 questions right after the instructions, 2 attempts; fail both -> screen-out page.
+  // The identical check runs again right after the last pair -> sets exclude_comprehension for the
+  // analysis only if a question is wrong on the FIRST try in both checks (never affects payment, and
+  // this second pass never screens anyone out).
+  comprehension: true,
 
   // ---- questionnaires ----
   askBackground: true,   // expertise questions before the task
@@ -41,5 +54,10 @@ window.STUDY_CONFIG = {
     failedChecksCode: "C19PM77J", // fallback code shown for THAT path -- must not fall back to completionCode
     failThreshold: 2,
     redirectDelayMs: 4000,
+    // Separate, smaller fixed-payment completion code for people screened out by the START
+    // comprehension check (2 wrong attempts). Empty = the screen-out page asks them to return the
+    // study on Prolific ("Cancel participation") instead of auto-redirecting.
+    screenOutUrl: "",   // e.g. "https://app.prolific.com/submissions/complete?cc=SCREENOUT1"
+    screenOutCode: "",  // fallback code shown on that page if screenOutUrl is set
   },
 };

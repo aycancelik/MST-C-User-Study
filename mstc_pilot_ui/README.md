@@ -6,10 +6,12 @@ click the **more legible** one. It answers one question:
 **How do people judge the heatmaps, without being taught how to read them?** Every choice is stored with both
 methods and both real MST-C scores (from `mst_c_user_study/outputs/mstc_imagenet_val_results.csv`). The
 instructions deliberately don't explain the colour coding or mention that the heatmaps come from an AI model's
-decision, so the task stays about raw legibility, not a lesson in reading saliency maps. A debrief (which cues
-made a map legible, a required free-text on how/why they decided, method familiarity, whether they recognised
-methods) and a general-audience background questionnaire (age range, education, AI familiarity, colour vision)
-are both asked **at the end**, after the task, not before.
+decision, and explicitly tell people not to try to interpret them, so the task stays about raw legibility, not
+a lesson in reading saliency maps. A debrief (which cues made a map legible, a required free-text on how/why
+they decided, method familiarity, whether they recognised methods) and a demographics questionnaire (age,
+gender, nationality, occupation/field of study, education, colour vision -- the same fields as `mstc_mock_ui`,
+plus education and colour vision since they matter for this task) are both asked **at the end**, after the
+task, not before.
 
 Quality is controlled with hidden attention checks rather than a mid-task "how focused do you feel?" probe, so
 the task itself never breaks character to ask something unrelated to legibility.
@@ -17,9 +19,47 @@ the task itself never breaks character to ask something unrelated to legibility.
 | per person | count | what it measures |
 |---|---|---|
 | main pairs | 20 | 40 heatmap images shown, |ΔMST-C| bins as close to even as the pool allows |
-| hidden attention checks | 10 | real Grad-CAM vs. pixel-shuffled copy, the main quality signal |
+| hidden attention checks | 10 | most structurally-compact heatmap available vs. pixel-shuffled copy, the main quality signal |
 | practice | 2 | example image that is not in the pool, excluded from analysis |
 | **total** | **32 screens** | ≈ 10 min |
+
+## Comprehension check (Prolific-compliant)
+
+Flow: welcome → instructions ⇄ **check 1** → 2 practice pairs → 30 screens (break halfway) → instructions ⇄
+**check 2** → debrief → background → end. "Back" works between instructions and the check (participants must
+be free to re-read); once practice/the main pairs have started there's no going back.
+
+* **Framing:** the instructions never mention AI or models and explicitly say not to try to interpret the heatmaps.
+* **Questions** (4, multiple choice, option order shuffled per participant, same order in both checks). Every
+  correct answer is stated explicitly in the instructions; wrong options are plausible misreadings: what you
+  judge on each page, whether you need to interpret the heatmaps, how you give your answer, what to do when a
+  photo repeats.
+* **Check 1 = gate**, shown right after the instructions, before practice. 2 attempts; after a wrong 1st try the
+  wrong questions are marked (answers not revealed) and people can go back to the instructions. Wrong again →
+  screen-out page asking them to return the study on Prolific ("Cancel participation"), or redirect to a separate
+  completion code if `prolific.screenOutUrl` is set. Prolific's rules: free to re-read, ≥2 chances, at the start,
+  no free text, **never rejected**.
+* **Check 2 = data-quality flag only**, the identical two pages again right after the last pair (same rules, two
+  chances), but nobody is screened out here. A question answered wrong on the **first** try in both checks sets
+  `exclude_comprehension = true` (analysis only; payment is not affected).
+* Correct answers are never marked on screen.
+* Saved per participant (JSON `summary` + repeated on every participant CSV row, prefixed `sum_`):
+  `check1_attempts`, `check1_passed`, `check1_screened_out`, `check1_first_try_wrong`, `check2_attempts`,
+  `check2_first_try_wrong`, `comp_wrong_both_times`, `exclude_comprehension`. Full answers per attempt are in the
+  JSON (`S.comp`, `S.compEndAttempts`).
+* Toggle with `comprehension` in `config.js`; set to `false` to skip both checks entirely.
+
+## Hidden attention checks
+
+A catch trial pairs the most structurally-compact heatmap available for an image/model (the one with the
+highest MST-C score -- MST-C literally stands for Structural Compactness, so this is the most concentrated,
+clearest heatmap on disk for that image, whichever method it happens to come from) against the *same* map
+with its pixels shuffled (same colours, no structure, i.e. static). Picking by score, not a method fixed in
+advance and not a hand-picked image, keeps the choice objective while guaranteeing the real side is an obvious
+pick next to the fully-scrambled copy -- which is the contrast the check depends on. They look like normal
+trials; participants are never told about them. 5 per model (`--catch-per-model` in `build_pilot_trials.py`),
+real side balanced 50/50, one at a random spot in each tenth of the session. Only `?demo=1` labels them
+(dashed outline + "HIDDEN ATTENTION CHECK" in the top bar). Regenerate with `build_pilot_trials.py` (below).
 
 Per trial we log: response time (from the moment photo + both heatmaps are decoded), mouse vs. keyboard, image load
 time, time the tab was hidden, window blurs, viewport. Order is shuffled per person (seeded by the participant code),
@@ -76,13 +116,17 @@ https://aycancelik.github.io/MST-C-User-Study/mstc_pilot_ui/?PROLIFIC_PID={{%PRO
 With `PROLIFIC_PID` in the URL the ID field is locked, no files are downloaded, and after saving the person is
 redirected to the completion URL. Optional `failedChecksUrl` = a second completion path for sessions that fail
 ≥ `failThreshold` (2) checks. Run Prolific's preview once and confirm the files arrive in OSF.
-For the main study, lower `nMain` / `nRepeats` / `attentionChecks` to what the pilot says is sustainable.
+For the main study, lower `nMain` / `nRepeats` / `attentionChecks` to what the pilot says is sustainable, and
+set `study` in `config.js` to something other than `"pilot_study"` (e.g. `"main_study"`) -- it's saved on every
+row and in the Firebase payload, precisely so pilot and main-study data can share the same Firebase
+project/table and still be told apart afterwards.
 
 ## Output
 
 Per session: `mstc_pilot_<code>_<start>.json`, `…_trials.csv`, `…_participant.csv`.
 
 **trials.csv**, one row per answered screen (`kind` = practice | main | repeat | attention):
+`study` (set by us in `config.js`, not derived from anything in the URL -- `"pilot_study"` for now),
 `screen` (position in the session), `main_index`, `trial_id`, `repeat_of`, `repeat_lag`, `image`, `model`,
 `method_a/b`, `method_left/right`, `mstc_left/right`, `abs_delta_mstc`, `bin`, `chosen_side`, `chosen_method`,
 `chosen_mstc`, `chose_higher_mstc`, `attention_target`, `attention_pass`, `original_chosen_method`,
@@ -91,7 +135,11 @@ Per session: `mstc_pilot_<code>_<start>.json`, `…_trials.csv`, `…_participan
 
 **participant.csv**, one row: IDs, timings, device (`env_*`), background (`bg_*`), debrief (`post_*`),
 and a summary (`sum_*`: attention passed/failed, `valid`, repeat consistency, left-choice rate, median RT per
-third, tab-hidden count, durations).
+third, tab-hidden count, comprehension check 1/2 results, and a seconds-based duration breakdown --
+`duration_total_s`, `duration_main_s`, `duration_check1_s` (instructions + check 1), `duration_break_s`,
+`duration_trials_only_s` (main trials minus the break), `duration_check2_s` (instructions + check 2),
+`duration_demographics_s`, and `image_duration_median_s`/`_mean_s`/`_min_s`/`_max_s` over the main pairs,
+all derived from `rt_ms`).
 
 **.json** has everything above plus the planned sequence, all interaction events, the balance report and the config.
 
