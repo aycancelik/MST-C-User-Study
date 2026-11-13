@@ -18,10 +18,11 @@ clock starts at that moment.
   Each participant's 39 pairs are balanced: 13 per model (14 incl. its check), each of the 10 method pairs 3–4×,
   each method 15–16× (the best possible with 78 slots over 5 methods). Different participants get different
   subsets, so all 72 pool pairs are covered across people (greedy pick + swap repair, verified on 1000 simulated IDs)
-* **hidden attention checks (catch trials):** a real Grad-CAM next to the *same* heatmap with its pixels
-  shuffled (same colours, no structure, i.e. static). They look like normal trials and participants are never told
-  about them. Correct = the real one. One per model, real side balanced, one at a random spot in each third
-  of the session. Only `?demo=1` labels them (dashed outline + "HIDDEN ATTENTION CHECK" in the top bar)
+* **hidden attention checks (catch trials):** a clearly legible heatmap (always **VGG16 + LRP-ε+**, on 6 hand-picked photos
+  where that map shows crisp structure) next to the *same* map with its pixels shuffled (same colours, no structure, i.e. static).
+  They look like normal trials and participants are never told about them. Correct = the real one. 3 per participant,
+  legible side balanced 50/50 across participants, one at a random spot in each third of the session. Only `?demo=1` labels
+  them (dashed outline + "HIDDEN ATTENTION CHECK" in the top bar). Regenerate with `python scripts/build_trials.py --catch-only`.
 * each trial = 2 of the 5 methods (Grad-CAM, Integrated Gradients, LIME, LRP-ε, LRP-ε+), same image + model
 * all 10 method pairs appear 7–8× each; every image gets 3 different pairs (one per model)
 * per participant (seeded by Prolific ID): shuffled order (no photo twice in a row),

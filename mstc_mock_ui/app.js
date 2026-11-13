@@ -100,7 +100,7 @@
     }));
     seq.forEach((t) => { t.Lsrc = src(t.image, t.model, t.left); t.Rsrc = src(t.image, t.model, t.right); });
 
-    // hidden attention checks ("catch trials"): real Grad-CAM vs. the same map pixel-scrambled.
+    // hidden attention checks ("catch trials"): a clearly legible map (VGG16 + LRP-eps+) vs. the same map pixel-scrambled.
     // They look like any other trial; the correct answer is the real (structured) heatmap.
     // One per model (keeps model counts balanced), real side balanced, each dropped at a random
     // spot inside its own third of the session so the position isn't predictable.
@@ -110,7 +110,8 @@
       shuffle(DATA.catch, rnd).forEach((c) => (byModel[c.model] = byModel[c.model] || []).push(c));
       const models = shuffle(Object.keys(byModel), rnd);
       const picks = Array.from({ length: nA }, (_, k) => byModel[models[k % models.length]].shift()).filter(Boolean);
-      const sides = shuffle(picks.map((_, k) => (k % 2 ? "L" : "R")), rnd);
+      const flipSide = rnd() < 0.5; // which side gets the extra one with an odd count -> 50/50 across people
+      const sides = shuffle(picks.map((_, k) => ((k % 2 === 0) !== flipSide ? "R" : "L")), rnd);
       const seg = seq.length / picks.length;
       // insert from the back so earlier positions stay valid
       picks.map((c, k) => ({ c, k, at: Math.max(3, Math.floor(k * seg + rnd() * seg)) }))
@@ -122,7 +123,7 @@
           for (let d = 0; d <= seq.length; d++) { if (ok(at + d)) { pos = at + d; break; } if (ok(at - d)) { pos = at - d; break; } }
           const realLeft = sides[k] === "L";
           seq.splice(pos, 0, { id: c.id, kind: "attention", image: c.image, model: c.model, target: sides[k],
-            left: realLeft ? "gradcam (real)" : "scrambled", right: realLeft ? "scrambled" : "gradcam (real)",
+            left: realLeft ? `${c.method || "gradcam"} (real)` : "scrambled", right: realLeft ? "scrambled" : `${c.method || "gradcam"} (real)`,
             Lsrc: realLeft ? c.real : c.scrambled, Rsrc: realLeft ? c.scrambled : c.real });
         });
     }

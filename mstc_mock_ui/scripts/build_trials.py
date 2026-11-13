@@ -85,7 +85,7 @@ def build(src: Path, out: Path, n_images: int, seed: int) -> dict:
             print("intro example image:", img_dir.name)
             break
 
-    catch = make_catch_trials(src, assets, images, seed)
+    catch = make_catch_trials(lambda i, m, x: src / i / m / TARGET_DIR / f"{x}.png", assets, seed)
 
     pair_counts = Counter(tuple(sorted((t["method_a"], t["method_b"]))) for t in trials)
     method_counts = Counter(x for t in trials for x in (t["method_a"], t["method_b"]))
@@ -112,37 +112,55 @@ def build(src: Path, out: Path, n_images: int, seed: int) -> dict:
     return data
 
 
-def make_catch_trials(src: Path, assets: Path, images: list[str], seed: int, per_model: int = 2) -> list[dict]:
-    """Hidden attention checks: a real Grad-CAM vs. the SAME heatmap with its pixels shuffled.
+# Hidden attention checks ("catch trials"): one CLEARLY legible heatmap vs. the SAME heatmap with its pixels
+# shuffled (identical colours, zero structure = obviously less legible). The legible side is always
+# VGG16 + LRP-epsilon-plus, on photos where that map shows crisp, clean structure (hand-picked).
+CATCH_MODEL, CATCH_METHOD = "vgg16", "lrp_epsilonplus"
+CATCH_IMAGES = ["ILSVRC2012_val_00007982", "ILSVRC2012_val_00009432", "ILSVRC2012_val_00025906",
+                "ILSVRC2012_val_00026576", "ILSVRC2012_val_00047124", "ILSVRC2012_val_00048776"]
 
-    Same colours, zero spatial structure, so the scrambled one is unambiguously the less legible.
-    Participants aren't told these exist; choosing the scrambled map = not paying attention.
-    """
+
+def make_catch_trials(heatmap_path, assets: Path, seed: int) -> list[dict]:
+    """heatmap_path(image, model, method) -> Path of that heatmap PNG."""
     rng = np.random.default_rng(seed + 2)
     out_dir = assets / "catch"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
     catch = []
-    for m in MODELS:
-        for img in rng.choice(images, size=per_model, replace=False):
-            real = src / img / m / TARGET_DIR / "gradcam.png"
-            arr = np.asarray(Image.open(real).convert("RGB"))
-            flat = arr.reshape(-1, 3)
-            scrambled = flat[rng.permutation(len(flat))].reshape(arr.shape)
-            name = f"{img[-8:]}_{m}"
-            shutil.copy2(real, out_dir / f"{name}_real.png")
-            Image.fromarray(scrambled).save(out_dir / f"{name}_scrambled.png")
-            catch.append({"id": f"catch_{name}", "image": img, "model": m,
-                          "real": f"assets/catch/{name}_real.png",
-                          "scrambled": f"assets/catch/{name}_scrambled.png"})
-    print(f"{len(catch)} catch stimuli (hidden attention checks)")
+    for img in CATCH_IMAGES:
+        real = heatmap_path(img, CATCH_MODEL, CATCH_METHOD)
+        arr = np.asarray(Image.open(real).convert("RGB"))
+        flat = arr.reshape(-1, 3)
+        scrambled = flat[rng.permutation(len(flat))].reshape(arr.shape)
+        name = f"{img[-8:]}_{CATCH_MODEL}_{CATCH_METHOD}"
+        shutil.copy2(real, out_dir / f"{name}_real.png")
+        Image.fromarray(scrambled).save(out_dir / f"{name}_scrambled.png")
+        catch.append({"id": f"catch_{img[-8:]}", "image": img, "model": CATCH_MODEL, "method": CATCH_METHOD,
+                      "real": f"assets/catch/{name}_real.png", "scrambled": f"assets/catch/{name}_scrambled.png"})
+    print(f"{len(catch)} catch stimuli ({CATCH_MODEL} {CATCH_METHOD} vs. pixel-scrambled copy)")
     return catch
+
+
+def rebuild_catch_only(out: Path, seed: int) -> None:
+    """Regenerate only the catch trials from the app's own assets/ (no source folder needed)."""
+    assets = out / "assets"
+    data = json.loads((out / "trials.json").read_text())
+    data["catch"] = make_catch_trials(lambda i, m, x: assets / i / m / f"{x}.png", assets, seed)
+    (out / "trials.json").write_text(json.dumps(data, indent=1))
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", type=Path, required=True, help="class folder, e.g. .../n03000134")
+    ap.add_argument("--src", type=Path, help="class folder, e.g. .../n03000134")
+    ap.add_argument("--catch-only", action="store_true", help="only regenerate the catch trials from assets/")
     ap.add_argument("--out", type=Path, default=Path(__file__).resolve().parents[1])
     ap.add_argument("--n-images", type=int, default=24)
     ap.add_argument("--seed", type=int, default=42)
     a = ap.parse_args()
-    build(a.src, a.out, a.n_images, a.seed)
+    if a.catch_only:
+        rebuild_catch_only(a.out, a.seed)
+    else:
+        if not a.src:
+            ap.error("--src is required unless --catch-only")
+        build(a.src, a.out, a.n_images, a.seed)
