@@ -8,8 +8,9 @@ methods and both real MST-C scores (from `mst_c_user_study/outputs/mstc_imagenet
 instructions deliberately don't explain the colour coding or mention that the heatmaps come from an AI model's
 decision, and explicitly tell people not to try to interpret them, so the task stays about raw legibility, not
 a lesson in reading saliency maps. A debrief (which cues made a map legible, a required free-text on how/why
-they decided, method familiarity, whether they recognised methods) and a general-audience background
-questionnaire (age range, education, AI familiarity, colour vision) are both asked **at the end**, after the
+they decided, method familiarity, whether they recognised methods) and a demographics questionnaire (age,
+gender, nationality, occupation/field of study, education, colour vision -- the same fields as `mstc_mock_ui`,
+plus education and colour vision since they matter for this task) are both asked **at the end**, after the
 task, not before.
 
 Quality is controlled with hidden attention checks rather than a mid-task "how focused do you feel?" probe, so

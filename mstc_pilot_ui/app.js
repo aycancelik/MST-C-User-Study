@@ -186,10 +186,23 @@
   // ---------- background (asked at the end) ----------
   $("#f-bg").addEventListener("submit", (e) => {
     e.preventDefault();
-    const v = checkForm(e.target, ["age_range", "education", "ai_familiarity", "ai_decision_familiarity", "colour_vision"], $("#bg-err"));
-    if (!v) return;
+    const f = e.target;
+    const v = checkForm(f, ["education", "colour_vision"], $("#bg-err"));
+    const age = +f.age.value;
+    const basicOk = f.age.value !== "" && age >= 18 && age <= 100 && f.nationality.value.trim() && f.occupation.value.trim();
+    if (!v || !basicOk) { $("#bg-err").hidden = false; return; }
     S.background = v; setPhase("end"); finish();
   });
+  // nationality suggestions: country names from the browser (ISO codes), so spelling stays consistent
+  (() => {
+    try {
+      const codes = "AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI KH CM CA CV CF TD CL CN CO KM CG CD CR CI HR CU CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HK HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI XK KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MR MU MX FM MD MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG KP MK NO OM PK PW PS PA PG PY PE PH PL PT PR QA RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA KR SS ES LK SD SR SE CH SY TW TJ TZ TH TL TG TO TT TN TR TM TV UG UA AE GB US UY UZ VU VA VE VN YE ZM ZW".split(" ");
+      const dn = new Intl.DisplayNames(["en"], { type: "region" });
+      const dl = document.createElement("datalist"); dl.id = "countries";
+      dl.innerHTML = codes.map((c) => dn.of(c)).sort().map((n) => `<option value="${n}">`).join("");
+      document.body.appendChild(dl);
+    } catch {}
+  })();
 
   // ---------- instructions (paged) ----------
   function initInstructions(stage) {
@@ -643,6 +656,10 @@
     Object.values(groups).forEach((g) => (g[Math.floor(Math.random() * g.length)].checked = true));
     form.querySelectorAll("select").forEach((s) => (s.selectedIndex = 1 + Math.floor(Math.random() * (s.options.length - 1))));
     form.querySelectorAll("textarea[required]").forEach((t) => (t.value = t.value || "(auto-filled for demo)"));
+    form.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"])').forEach((i) => {
+      if (i.value) return;
+      i.value = i.type === "number" ? String(18 + Math.floor(Math.random() * 50)) : i.name === "nationality" ? "Germany" : "Researcher";
+    });
     $("#fs-influence").hidden = false;
     form.requestSubmit();
   }

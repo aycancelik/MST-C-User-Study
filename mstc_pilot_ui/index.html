@@ -210,13 +210,18 @@
       <p class="eyebrow">Last step · 1 minute</p>
       <h1>A bit about you</h1>
 
-      <fieldset><legend>What is your age range?</legend>
-        <select name="age_range" required>
-          <option value="">Choose…</option>
-          <option>18–24</option><option>25–34</option><option>35–44</option>
-          <option>45–54</option><option>55–64</option><option>65 or older</option>
-        </select>
+      <label class="field"><span>Age</span>
+        <input type="number" name="age" min="18" max="100" inputmode="numeric" required placeholder="e.g. 27"></label>
+
+      <fieldset><legend>Gender <small class="muted">(optional)</small></legend>
+        <div class="opts" data-name="gender" data-options="Male|Female|Non-binary|Prefer not to say"></div>
       </fieldset>
+
+      <label class="field"><span>Nationality</span>
+        <input name="nationality" list="countries" autocomplete="off" required placeholder="start typing, e.g. Germany"></label>
+
+      <label class="field"><span>Occupation <small class="muted">(or field of study, if you're a student)</small></span>
+        <input name="occupation" autocomplete="off" required placeholder="e.g. nurse / psychology student"></label>
 
       <fieldset><legend>What is the highest level of education you've completed?</legend>
         <select name="education" required>
@@ -227,19 +232,11 @@
         </select>
       </fieldset>
 
-      <fieldset><legend>How often do you use AI tools in daily life (e.g. chatbots, image generators, recommendation feeds)?</legend>
-        <div class="opts" data-name="ai_familiarity" data-options="Never|Rarely|Sometimes|Often|Daily"></div>
-      </fieldset>
-
-      <fieldset><legend>How familiar are you with how these tools actually make decisions?</legend>
-        <div class="likert" data-name="ai_decision_familiarity" data-lo="not at all familiar" data-hi="very familiar"></div>
-      </fieldset>
-
       <fieldset><legend>Do you have a known colour-vision deficiency?</legend>
         <div class="opts" data-name="colour_vision" data-options="No|Yes|Not sure|Prefer not to say"></div>
       </fieldset>
 
-      <p class="form-err" id="bg-err" hidden>Please answer every question.</p>
+      <p class="form-err" id="bg-err" hidden>Please answer age (18–100), nationality, occupation and every other question.</p>
       <button class="btn primary" type="submit">Finish</button>
     </form>
   </section>
