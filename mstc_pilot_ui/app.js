@@ -106,7 +106,7 @@
 
   // ---------- welcome ----------
   function initWelcome() {
-    const total = (CFG.nMain || 150) + (CFG.nRepeats ?? 12) + (CFG.attentionChecks ?? 10);
+    const total = (CFG.nMain || 150) + (CFG.nRepeats ?? 12) + (CFG.attentionChecks ?? 4);
     $("#w-ntrials").textContent = total;
     $("#w-minutes").textContent = Math.max(5, Math.round((total * (CFG.secondsPerTrial || 7) + 240) / 60 / 5) * 5);
     $("#w-small").hidden = innerWidth >= (CFG.minViewportWidth || 0);
