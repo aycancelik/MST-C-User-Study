@@ -6,10 +6,11 @@ click the **more legible** one. It answers one question:
 **How do people judge the heatmaps, without being taught how to read them?** Every choice is stored with both
 methods and both real MST-C scores (from `mst_c_user_study/outputs/mstc_imagenet_val_results.csv`). The
 instructions deliberately don't explain the colour coding or mention that the heatmaps come from an AI model's
-decision, so the task stays about raw legibility, not a lesson in reading saliency maps. A debrief (which cues
-made a map legible, a required free-text on how/why they decided, method familiarity, whether they recognised
-methods) and a general-audience background questionnaire (age range, education, AI familiarity, colour vision)
-are both asked **at the end**, after the task, not before.
+decision, and explicitly tell people not to try to interpret them, so the task stays about raw legibility, not
+a lesson in reading saliency maps. A debrief (which cues made a map legible, a required free-text on how/why
+they decided, method familiarity, whether they recognised methods) and a general-audience background
+questionnaire (age range, education, AI familiarity, colour vision) are both asked **at the end**, after the
+task, not before.
 
 Quality is controlled with hidden attention checks rather than a mid-task "how focused do you feel?" probe, so
 the task itself never breaks character to ask something unrelated to legibility.
@@ -20,6 +21,32 @@ the task itself never breaks character to ask something unrelated to legibility.
 | hidden attention checks | 10 | real Grad-CAM vs. pixel-shuffled copy, the main quality signal |
 | practice | 2 | example image that is not in the pool, excluded from analysis |
 | **total** | **32 screens** | ≈ 10 min |
+
+## Comprehension check (Prolific-compliant)
+
+Flow: welcome → instructions ⇄ **check 1** → 2 practice pairs → 30 screens (break halfway) → instructions ⇄
+**check 2** → debrief → background → end. "Back" works between instructions and the check (participants must
+be free to re-read); once practice/the main pairs have started there's no going back.
+
+* **Framing:** the instructions never mention AI or models and explicitly say not to try to interpret the heatmaps.
+* **Questions** (4, multiple choice, option order shuffled per participant, same order in both checks). Every
+  correct answer is stated explicitly in the instructions; wrong options are plausible misreadings: what you
+  judge on each page, whether you need to interpret the heatmaps, how you give your answer, what to do when a
+  photo repeats.
+* **Check 1 = gate**, shown right after the instructions, before practice. 2 attempts; after a wrong 1st try the
+  wrong questions are marked (answers not revealed) and people can go back to the instructions. Wrong again →
+  screen-out page asking them to return the study on Prolific ("Cancel participation"), or redirect to a separate
+  completion code if `prolific.screenOutUrl` is set. Prolific's rules: free to re-read, ≥2 chances, at the start,
+  no free text, **never rejected**.
+* **Check 2 = data-quality flag only**, the identical two pages again right after the last pair (same rules, two
+  chances), but nobody is screened out here. A question answered wrong on the **first** try in both checks sets
+  `exclude_comprehension = true` (analysis only; payment is not affected).
+* Correct answers are never marked on screen.
+* Saved per participant (JSON `summary` + repeated on every participant CSV row, prefixed `sum_`):
+  `check1_attempts`, `check1_passed`, `check1_screened_out`, `check1_first_try_wrong`, `check2_attempts`,
+  `check2_first_try_wrong`, `comp_wrong_both_times`, `exclude_comprehension`. Full answers per attempt are in the
+  JSON (`S.comp`, `S.compEndAttempts`).
+* Toggle with `comprehension` in `config.js`; set to `false` to skip both checks entirely.
 
 Per trial we log: response time (from the moment photo + both heatmaps are decoded), mouse vs. keyboard, image load
 time, time the tab was hidden, window blurs, viewport. Order is shuffled per person (seeded by the participant code),

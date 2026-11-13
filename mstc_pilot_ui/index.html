@@ -18,7 +18,7 @@
     <div class="narrow">
       <p class="eyebrow">Research study</p>
       <h1>Which heatmap is easier to read?</h1>
-      <p class="lead">For each photo you'll see two heatmaps side by side: colour overlays that highlight different parts of the photo. Just click the one you find <strong>more legible</strong>, meaning clearer and easier to read.</p>
+      <p class="lead">For each photo you'll see two heatmaps side by side: colour overlays that highlight different parts of the photo. Just click the one you find <strong>easier to read and more visually appealing</strong>.</p>
       <ul class="facts">
         <li><span>⏱</span> about <b id="w-minutes">20</b> minutes</li>
         <li><span>🖼</span> <b id="w-ntrials">172</b> short comparisons</li>
@@ -53,35 +53,26 @@
       <div class="steps" id="steps"></div>
 
       <div class="page" data-page="0">
-        <p class="eyebrow">Step 1 of 3 · What you'll see</p>
+        <p class="eyebrow">Step 1 of 2 · What you'll see</p>
         <h1>A photo and two heatmaps</h1>
-        <p>On every page you'll see a <b>photo</b> at the top. Below it are <b>two heatmaps</b> of that same photo, each highlighting certain parts of it in colour.</p>
+        <p>On every page you'll see a <b>photo</b> at the top. Below it are <b>two heatmaps</b> of that same photo: colour overlays that highlight certain parts of it. The heatmaps may look abstract, and the two may look very different from each other.</p>
         <div class="mock" id="mock-trial"></div>
         <p class="muted">Every page looks like this. Only the photo and the heatmaps change.</p>
+        <p>You do not need to understand what the heatmaps show or what they mean. <b>Please do not try to interpret them.</b></p>
       </div>
 
       <div class="page" data-page="1">
-        <p class="eyebrow">Step 2 of 3 · Your task</p>
-        <h1>Click the heatmap you find more legible</h1>
-        <p>For each photo, look at the two heatmaps and <b>click the one that is more legible to you</b>, meaning the one that's clearer and easier to read.</p>
-        <p>The question won't be repeated on every page. Just keep doing the same thing: one click, and the next pair appears straight away.</p>
+        <p class="eyebrow">Step 2 of 2 · Your task</p>
+        <h1>Choose the heatmap that's easier to read</h1>
+        <p>Your task is to choose the heatmap you find <b>easier to read and more visually appealing</b>. Go with your first impression &mdash; there are no right or wrong answers.</p>
         <ul class="rules">
-          <li>There are no right or wrong answers. We want <b>your</b> impression.</li>
-          <li>Don't overthink it, but do look at both. A few seconds per pair is plenty.</li>
-          <li>The same photo will appear several times, each time with different heatmaps. Judge every pair on its own.</li>
-          <li>There are <b id="i-ntrials">172</b> pairs.</li>
+          <li>Click directly on the heatmap you prefer, or press <kbd>←</kbd> / <kbd>→</kbd> for left / right.</li>
+          <li>Your choice is saved immediately and the next pair appears. There is no "Next" button, and you cannot go back.</li>
+          <li>The same photo may appear again with different heatmaps. Judge each new pair <b>on its own</b>, regardless of your earlier choices.</li>
+          <li>There are <b id="i-ntrials">172</b> pairs in total, with a short break halfway.</li>
           <li id="i-quality" hidden>A few quality checks are included, so please stay attentive until the end.</li>
         </ul>
-      </div>
-
-      <div class="page" data-page="2">
-        <p class="eyebrow">Step 3 of 3 · Practice</p>
-        <h1>Two practice pairs first</h1>
-        <p>You'll start with <b>2 practice pairs</b> so you can get a feel for it. They don't count.</p>
-        <div class="keys">
-          <span>Click a heatmap, or use <kbd>←</kbd> / <kbd>→</kbd> for left / right</span>
-        </div>
-        <p class="muted">Please do the study in one go, in a quiet moment, with this tab in the foreground.</p>
+        <p class="muted" id="instr-practice-note">You'll start with 2 practice pairs (they don't count), right after a couple of quick questions about these instructions. Please do the study in one go, with this tab in the foreground.</p>
       </div>
 
       <div class="pager">
@@ -91,12 +82,43 @@
     </div>
   </section>
 
+  <!-- COMPREHENSION CHECK (check 1: gate before practice; check 2: identical, after the last pair, flag only) -->
+  <section class="screen" id="s-comp" hidden>
+    <form class="narrow" id="f-comp" novalidate>
+      <p class="eyebrow">Quick check</p>
+      <h2 class="comp-h" id="comp-title">Please answer these questions about the instructions</h2>
+      <p class="muted">Not sure? Go back and re-read the instructions. You have two chances to get these right.</p>
+      <div class="comp-msg" id="comp-msg" hidden></div>
+      <div id="comp-qs"></div>
+      <p class="form-err" id="comp-err" hidden>Please answer every question.</p>
+      <div class="pager">
+        <button class="btn ghost" type="button" id="btn-comp-back">Back to the instructions</button>
+        <button class="btn primary" type="submit">Check my answers</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- SCREEN-OUT (failed the start check twice) -->
+  <section class="screen" id="s-screenout" hidden>
+    <div class="narrow center">
+      <p class="eyebrow">Thank you</p>
+      <h1>Unfortunately you can't continue</h1>
+      <p>Some answers about the task were still not right after a second try, so we can't include you in this study. Thank you for your time!</p>
+      <p id="so-how">Please <b>return your submission</b>: close this tab, go back to Prolific and click <b>&ldquo;Cancel participation&rdquo;</b>.</p>
+      <div class="code-box" id="so-code-box" hidden>
+        <span>Completion code</span>
+        <b id="so-completion-code"></b>
+      </div>
+      <a class="btn primary" id="btn-screenout" hidden>Return to Prolific</a>
+    </div>
+  </section>
+
   <!-- PRACTICE DONE -->
   <section class="screen" id="s-practice-done" hidden>
     <div class="narrow center">
       <p class="eyebrow">Practice done</p>
       <h1>Great, that's how it works 👍</h1>
-      <p>Now the real study begins: <b id="pd-n">172</b> pairs. Keep clicking the heatmap you find <b>more legible</b>.</p>
+      <p>Now the real study begins: <b id="pd-n">172</b> pairs. Keep clicking the heatmap you find <b>easier to read and more visually appealing</b>.</p>
       <button class="btn primary" id="btn-go">Start</button>
     </div>
   </section>
