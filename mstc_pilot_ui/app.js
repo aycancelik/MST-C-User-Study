@@ -169,14 +169,13 @@
 
   function route() {
     switch (S.phase) {
-      case "instr": return initInstructions("start");
-      case "comp": return showComp(S.compStage || "start");
+      case "instr": return initInstructions();
+      case "comp": return showComp();
       case "screenout": return showScreenOut();
       case "practice": return S.pidx < SESS.practice.length ? runTrial() : (setPhase("practice_done"), route());
       case "practice_done": $("#pd-n").textContent = N(); return show("s-practice-done");
       case "main": return runTrial();
       case "break": return showBreak();
-      case "instr_end": return initInstructions("end");
       case "post": return CFG.askDebrief === false ? (setPhase("bg"), route()) : show("s-post");
       case "bg": return CFG.askBackground === false ? (setPhase("end"), finish()) : show("s-bg");
       case "end": return finish();
@@ -205,10 +204,8 @@
   })();
 
   // ---------- instructions (paged) ----------
-  function initInstructions(stage) {
-    stage = stage || "start";
-    S.compStage = stage;
-    if (stage === "start") S.timings.instr_at = S.timings.instr_at || nowIso(); // "instr" is the initial phase, so setPhase() never ran for it
+  function initInstructions() {
+    S.timings.instr_at = S.timings.instr_at || nowIso(); // "instr" is the initial phase, so setPhase() never ran for it
     save();
     const ex = DATA.practice && DATA.practice[0];
     if (ex) $("#mock-trial").innerHTML = `
@@ -216,9 +213,6 @@
       <div class="mock-pair"><img src="assets/${ex.image}/${ex.model}/${ex.method_a}.png" alt="example heatmap"><img src="assets/${ex.image}/${ex.model}/${ex.method_b}.png" alt="example heatmap"></div>`;
     $("#i-ntrials").textContent = N();
     $("#i-quality").hidden = !CFG.mentionQualityChecks;
-    $("#instr-practice-note").textContent = stage === "end"
-      ? "Just a couple of quick questions to confirm, then you're done."
-      : "You'll start with 2 practice pairs (they don't count), right after a couple of quick questions about these instructions. Please do the study in one go, with this tab in the foreground.";
     const pages = $$("#s-instr .page");
     $("#steps").innerHTML = pages.map(() => "<i></i>").join("");
     let k = 0;
@@ -227,17 +221,13 @@
       [...$("#steps").children].forEach((d, i) => d.classList.toggle("on", i <= k));
       $("#btn-back").style.visibility = k ? "visible" : "hidden";
       $("#btn-fwd").textContent = k < pages.length - 1 ? "Next"
-        : CFG.comprehension === false ? (stage === "start" ? "Start practice" : "Continue") : "Continue to the quick check";
+        : CFG.comprehension === false ? "Start practice" : "Continue to the quick check";
       window.scrollTo(0, 0);
     };
     $("#btn-back").onclick = () => { if (k > 0) { k--; render(); } };
     $("#btn-fwd").onclick = () => {
       if (k < pages.length - 1) { k++; render(); return; }
-      if (CFG.comprehension === false) {
-        if (stage === "start") { setPhase("practice"); route(); }
-        else { S.compEndDoneAt = S.compEndDoneAt || nowIso(); setPhase("post"); route(); }
-        return;
-      }
+      if (CFG.comprehension === false) { setPhase("practice"); route(); return; }
       setPhase("comp"); route();
     };
     show("s-instr"); render();
@@ -245,11 +235,10 @@
   $("#btn-go").onclick = () => { setPhase("main"); S.timings.main_start = S.timings.main_start || nowIso(); save(); route(); };
 
   // ---------- comprehension check (Prolific-compliant) ----------
-  // CHECK 1 (start): gate. 2 attempts; after a wrong 1st try the wrong questions are marked (not the
-  //   answers). Failing twice -> screen-out page asking them to return the study (never a rejection).
-  // CHECK 2 (end): the identical two pages again after the last pair, same two chances, but nobody is
-  //   screened out. A question wrong on the FIRST try in both checks flags the person for exclusion
-  //   from the ANALYSIS only (payment unaffected).
+  // Shown once, right after the instructions, before practice: a gate, 2 attempts; after a wrong 1st
+  // try the wrong questions are marked (not the answers). Failing twice -> screen-out page asking them
+  // to return the study (never a rejection). Prolific's policy requires comprehension checks at the
+  // start of the study and doesn't provide for repeating one later, so there's no second pass at the end.
   // Every correct answer is stated explicitly in the instructions; wrong options are plausible misreadings.
   const COMP = [
     { id: "task", q: "What are you asked to do on each page?",
@@ -262,14 +251,11 @@
       opts: ["Judge the new pair on its own", "Pick the same side as before", "Pick the heatmap most similar to my earlier choice", "Skip it, since I've seen it already"] },
   ]; // first option = correct; the order shown is shuffled per participant (same order in both checks)
 
-  function showComp(stage) {
-    S.compStage = stage; save();
+  function showComp() {
     const rnd = window.MSTCSession.mulberry32(window.MSTCSession.hash("comp|" + S.pid));
-    const start = stage === "start";
-    const tries = start ? (S.comp ? S.comp.attempts : []) : (S.compEndAttempts || []);
+    const tries = S.comp ? S.comp.attempts : [];
     $("#comp-title").textContent = `Please answer these ${COMP.length} questions about the instructions`;
-    const shownKey = start ? "comp_shown_at" : "comp_end_shown_at";
-    if (!S.timings[shownKey]) { S.timings[shownKey] = nowIso(); save(); }
+    if (!S.timings.comp_shown_at) { S.timings.comp_shown_at = nowIso(); save(); }
     const last = tries.length === 1 ? tries[0] : null; // after a failed 1st attempt
     $("#comp-msg").hidden = !last;
     if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). Please re-read the instructions, then try again. <b>This is your last attempt.</b>";
@@ -285,7 +271,7 @@
     show("s-comp");
     if (last) setTimeout(() => $("#comp-msg").scrollIntoView({ block: "center" }), 0);
   }
-  $("#btn-comp-back").onclick = () => { setPhase(S.compStage === "end" ? "instr_end" : "instr"); route(); };
+  $("#btn-comp-back").onclick = () => { setPhase("instr"); route(); };
   $("#f-comp").addEventListener("change", (e) => { const q = e.target.closest(".q"); if (q) q.classList.remove("wrong", "missing"); });
   $("#f-comp").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -303,18 +289,11 @@
       at: nowIso(), answers_idx: answers, correct, n_wrong: Object.values(correct).filter((v) => !v).length,
       answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, COMP.find((c) => c.id === k).opts[v]])),
     };
-    if (S.compStage === "end") {
-      S.compEndAttempts = S.compEndAttempts || [];
-      S.compEndAttempts.push(rec);
-      S.compEnd = S.compEndAttempts[0];
-      if (rec.n_wrong && S.compEndAttempts.length < 2) { save(); return showComp("end"); }
-      S.compEndDoneAt = rec.at; setPhase("post"); return route();
-    }
     S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
     S.comp.attempts.push(rec);
     if (!rec.n_wrong) { S.comp.passed = true; save(); setPhase("practice"); return route(); }
     if (S.comp.attempts.length >= 2) { S.comp.screened_out = true; S.finished = nowIso(); save(); setPhase("screenout"); return route(); }
-    save(); showComp("start");
+    save(); showComp();
   });
 
   // ---------- screen-out (failed the start check twice) ----------
@@ -404,7 +383,6 @@
     if (CFG.breakAt && !S.breakShown && S.idx === Math.round(N() * CFG.breakAt)) { setPhase("break"); return showBreak(); }
     if (done) {
       S.timings.main_end = S.timings.main_end || nowIso();
-      if (CFG.comprehension !== false && !S.compEndDoneAt) { setPhase("instr_end"); return route(); }
       setPhase("post"); return route();
     }
     S.phase = "main"; save(); runTrial();
@@ -462,19 +440,13 @@
     const hm = rows.filter((r) => r.chose_higher_mstc != null && r.kind === "main");
     const failed = att.filter((r) => !r.attention_pass).length;
     const dur = (a, b) => (a && b ? Math.round((Date.parse(b) - Date.parse(a)) / 1000) : null);
-    const first = S.comp && S.comp.attempts[0], end = S.compEnd;
+    const first = S.comp && S.comp.attempts[0];
     const wrongFirst = first ? COMP.filter((c) => !first.correct[c.id]).map((c) => c.id) : [];
-    const wrongEnd = end ? COMP.filter((c) => !end.correct[c.id]).map((c) => c.id) : [];
-    const wrongBoth = wrongFirst.filter((q) => wrongEnd.includes(q));
     return {
       check1_attempts: S.comp ? S.comp.attempts.length : 0,
       check1_passed: !!(S.comp && S.comp.passed),
       check1_screened_out: !!(S.comp && S.comp.screened_out),
       check1_first_try_wrong: wrongFirst.join(";"),
-      check2_attempts: (S.compEndAttempts || []).length,
-      check2_first_try_wrong: wrongEnd.join(";"),
-      comp_wrong_both_times: wrongBoth.join(";"),
-      exclude_comprehension: wrongBoth.length > 0,
       n_main_answered: main.length, n_repeat_answered: rep.length,
       attention_total: att.length, attention_passed: att.length - failed, attention_failed: failed,
       valid: failed < (CFG.prolific?.failThreshold ?? 2),
@@ -504,7 +476,6 @@
       duration_check1_s: dur(S.timings.instr_at, S.timings.practice_at), // instructions + check 1 (all attempts, incl. going back)
       duration_break_s: S.breaks && S.breaks.length ? breakTotalS : null,
       duration_trials_only_s: trialsS != null ? trialsS - breakTotalS : null, // pure time on the pairs
-      duration_check2_s: dur(S.timings.instr_end_at, S.compEndDoneAt), // instructions + check 2 at the end
       duration_demographics_s: dur(S.timings.bg_at, S.finished),
       image_duration_median_s: sorted.length ? +sorted[Math.floor(sorted.length / 2)].toFixed(3) : null,
       image_duration_mean_s: rtS.length ? +(rtS.reduce((a, b) => a + b, 0) / rtS.length).toFixed(3) : null,
@@ -537,7 +508,7 @@
       meta: { app_version: S.app_version, study: S.study, study_name: S.study_name, participant_id: S.pid, id_source: S.id_source, study_id: S.study_id,
         session_id: S.session_id, mode: S.mode, demo: S.demo, started: S.started, consent_at: S.consent_at, finished: S.finished },
       summary: sum, env: S.env, background: S.background, debrief: S.debrief, breaks: S.breaks,
-      comprehension: { check1: S.comp || null, check2_attempts: S.compEndAttempts || [] },
+      comprehension: S.comp || null,
       timings: S.timings, events: S.events, balance: S.balance, config: S.config, data_meta: S.data_meta,
       sequence: SESS.seq.map(({ Lsrc, Rsrc, ...t }) => t),
       trials: rows,
@@ -654,7 +625,7 @@
     const running = S && ["main", "practice", "practice_done", "break"].includes(S.phase);
     const inComp = S && S.phase === "comp";
     bar.innerHTML = `<span class="pill">DEMO</span><span>pid <b>${S ? S.pid : "–"}</b></span>${info}
-      ${inComp ? `<span><b>COMPREHENSION CHECK (${S.compStage === "end" ? "end, flag only" : "start, gate"})</b></span>` : ""}
+      ${inComp ? `<span><b>COMPREHENSION CHECK (gate)</b></span>` : ""}
       <span class="spacer"></span>
       <label><input type="checkbox" id="d-ov" ${CFG.overlay ? "checked" : ""}> overlay</label>
       ${forms ? `<button id="d-form">auto-fill form</button>` : ""}
