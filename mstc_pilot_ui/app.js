@@ -207,7 +207,9 @@
   // ---------- instructions (paged) ----------
   function initInstructions(stage) {
     stage = stage || "start";
-    S.compStage = stage; save();
+    S.compStage = stage;
+    if (stage === "start") S.timings.instr_at = S.timings.instr_at || nowIso(); // "instr" is the initial phase, so setPhase() never ran for it
+    save();
     const ex = DATA.practice && DATA.practice[0];
     if (ex) $("#mock-trial").innerHTML = `
       ${CFG.showPhoto === false ? "" : `<img class="mock-photo" src="${photo(ex.image)}" alt="example photo">`}
@@ -485,7 +487,29 @@
       total_hidden_s: Math.round(rows.reduce((a, r) => a + (r.hidden_ms || 0), 0) / 100) / 10,
       n_resumes: S.events.filter((e) => e.type === "resume").length,
       duration_total_s: dur(S.started, S.finished), duration_main_s: dur(S.timings.main_start, S.timings.main_end),
+      ...durations(main),
       simulated: rows.some((r) => r.simulated),
+    };
+  }
+
+  // seconds-based duration breakdown (mirrors mstc_mock_ui): instructions+check timings, break-only
+  // time, and per-image timing stats. All based on ISO timestamps, so they survive reloads/resumes.
+  function durations(main) {
+    const dur = (a, b) => (a && b ? Math.round((Date.parse(b) - Date.parse(a)) / 1000) : null);
+    const breakTotalS = (S.breaks || []).reduce((a, b) => a + (b.duration_s || 0), 0);
+    const trialsS = dur(S.timings.main_start, S.timings.main_end);
+    const rtS = main.map((r) => r.rt_ms).filter((v) => v != null).map((v) => v / 1000);
+    const sorted = rtS.slice().sort((a, b) => a - b);
+    return {
+      duration_check1_s: dur(S.timings.instr_at, S.timings.practice_at), // instructions + check 1 (all attempts, incl. going back)
+      duration_break_s: S.breaks && S.breaks.length ? breakTotalS : null,
+      duration_trials_only_s: trialsS != null ? trialsS - breakTotalS : null, // pure time on the pairs
+      duration_check2_s: dur(S.timings.instr_end_at, S.compEndDoneAt), // instructions + check 2 at the end
+      duration_demographics_s: dur(S.timings.bg_at, S.finished),
+      image_duration_median_s: sorted.length ? +sorted[Math.floor(sorted.length / 2)].toFixed(3) : null,
+      image_duration_mean_s: rtS.length ? +(rtS.reduce((a, b) => a + b, 0) / rtS.length).toFixed(3) : null,
+      image_duration_min_s: sorted.length ? +sorted[0].toFixed(3) : null,
+      image_duration_max_s: sorted.length ? +sorted[sorted.length - 1].toFixed(3) : null,
     };
   }
 

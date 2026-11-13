@@ -119,7 +119,11 @@ Per session: `mstc_pilot_<code>_<start>.json`, `…_trials.csv`, `…_participan
 
 **participant.csv**, one row: IDs, timings, device (`env_*`), background (`bg_*`), debrief (`post_*`),
 and a summary (`sum_*`: attention passed/failed, `valid`, repeat consistency, left-choice rate, median RT per
-third, tab-hidden count, durations).
+third, tab-hidden count, comprehension check 1/2 results, and a seconds-based duration breakdown --
+`duration_total_s`, `duration_main_s`, `duration_check1_s` (instructions + check 1), `duration_break_s`,
+`duration_trials_only_s` (main trials minus the break), `duration_check2_s` (instructions + check 2),
+`duration_demographics_s`, and `image_duration_median_s`/`_mean_s`/`_min_s`/`_max_s` over the main pairs,
+all derived from `rt_ms`).
 
 **.json** has everything above plus the planned sequence, all interaction events, the balance report and the config.
 
