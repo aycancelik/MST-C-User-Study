@@ -163,3 +163,5 @@ body.demo.is-catch .card { outline: 2px dashed #f59e0b; outline-offset: 4px; }
 .radios label { display: flex; gap: 10px; align-items: center; padding: 5px 0; cursor: pointer; }
 .radios input { accent-color: var(--ink); width: 16px; height: 16px; }
 .field input:invalid.touched { border-color: var(--red); }
+
+.rules.instr li { margin: 10px 0; color: var(--ink); }

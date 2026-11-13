@@ -62,28 +62,38 @@
     </div>
   </section>
 
-  <!-- COMPREHENSION CHECK (start: gate, 2 attempts / end: once, data-quality flag) -->
+  <!-- INSTRUCTIONS (own page; reachable again from the check via "Back") -->
+  <section class="screen" id="s-instr" hidden>
+    <div class="narrow">
+      <p class="eyebrow">Instructions</p>
+      <h1>How it works</h1>
+      <ul class="rules instr">
+        <li>Each page shows a <b>photo</b> at the top and <b>two heatmaps</b> of that photo below it.</li>
+        <li>Your task: compare the two heatmaps and click the one you find <b>more legible</b>.</li>
+        <li><b>“More legible”</b> means <b>clearer and easier to read</b>. It does not mean more colourful, larger, or more accurate.</li>
+        <li>To answer, <b>click directly on the heatmap</b> (or press <kbd>←</kbd> / <kbd>→</kbd>). Your choice is saved immediately and the next pair appears. There is no “Next” button and you can't go back.</li>
+        <li>The same photo can come back with <b>different heatmaps</b>. Judge every new pair <b>on its own</b>, regardless of what you chose before.</li>
+        <li>There are no right or wrong answers. There are <b id="i-ntrials">42</b> pairs, with a short break halfway.</li>
+      </ul>
+      <p class="muted">The task question won't be repeated on each page. On the next page you'll answer a few short questions about these instructions.</p>
+      <div class="pager">
+        <button class="btn ghost" id="btn-instr-back">Back</button>
+        <button class="btn primary" id="btn-instr-next">Continue to the questions</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPREHENSION CHECK (check 1: gate, 2 attempts / check 2 at the end: flag only) -->
   <section class="screen" id="s-comp" hidden>
     <form class="narrow" id="f-comp" novalidate>
-      <div id="instr-block">
-        <p class="eyebrow">Instructions</p>
-        <h1>Click the heatmap you find more legible</h1>
-        <p>Each page shows a <b>photo</b> and <b>two heatmaps</b> of it. Click the heatmap you find <b>more legible</b>, meaning <b>clearer and easier to read</b>. One click (or <kbd>←</kbd> / <kbd>→</kbd>) and the next pair appears. This question isn't repeated on each page.</p>
-        <ul class="rules">
-          <li>There are <b>no right or wrong answers</b>. We want your impression.</li>
-          <li><b>A few seconds</b> per pair is plenty.</li>
-          <li>The same photo can come back with different heatmaps: <b>judge every pair on its own</b>.</li>
-          <li><b id="i-ntrials">42</b> pairs, with a short break halfway.</li>
-        </ul>
-        <hr class="sep">
-      </div>
       <p class="eyebrow" id="comp-eyebrow">Quick check</p>
       <h2 class="comp-h" id="comp-title">Before you start, please answer these 5 questions</h2>
       <p class="muted" id="comp-lead">Not sure? Re-read the instructions above. You have two chances to get these right.</p>
       <div class="comp-msg" id="comp-msg" hidden></div>
       <div id="comp-qs"></div>
       <p class="form-err" id="comp-err" hidden>Please answer every question.</p>
-      <div class="pager pager-end">
+      <div class="pager">
+        <button class="btn ghost" type="button" id="btn-comp-back">Back to the instructions</button>
         <button class="btn primary" type="submit" id="btn-comp">Check my answers</button>
       </div>
     </form>

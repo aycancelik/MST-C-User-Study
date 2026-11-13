@@ -105,29 +105,30 @@ What to align before wiring:
 
 ## Comprehension check (Prolific-compliant)
 
-Flow: welcome → **check 1** (instructions + questions on one page) → 5 pairs → **check 2** (identical page) →
-remaining pairs (break halfway) → **demographics** → end.
+Flow: welcome → **instructions** ⇄ **check 1** → 42 screens (break halfway) → **instructions** ⇄ **check 2** →
+**demographics** → end. Back buttons work between welcome, instructions and check; once the first pair is shown there's
+no going back (no Back button, and the browser's Back button is blocked during the pairs).
 
 * **Framing:** participants are told it's about how people perceive images. Nothing on any participant screen
-  mentions AI or models (checked automatically on every screen). Heatmaps are introduced as "coloured maps of the photo".
-* **Start = gate.** Short instructions and 5 multiple-choice questions on the same page (as Prolific asks): what to click,
-  what "more legible" means (clearer and easier to read), no right answer, how long to spend (a few seconds), judge repeated photos independently. Option order is shuffled
-  per participant. 2 attempts; after a wrong first attempt the wrong questions are marked (answers not revealed) and
-  the instructions stay right above. Wrong again → screen-out page asking them to return the study on Prolific
-  ("Cancel participation"), or a redirect to `prolificScreenOutUrl` if you set up a screen-out code.
-  Prolific's rules: checks at the start, ≥2 attempts, failures return/screen out, **never rejected**.
-* **Check 2 = data-quality flag only** (`secondCheckAfter: 5` in `config.js`). Right after the 5th screen the **identical
-  page** comes again (same instructions, questions and rules: two chances, wrong answers marked). Nobody is screened out
-  here, since they've already started the task. A question answered wrong on the **first** try in both check 1 and
-  check 2 sets `exclude_comprehension = true`. Exclusion from the **analysis** only; payment is not affected.
-* Correct answers are never marked on screen (also not in demo mode).
+  mentions AI or models (checked automatically on every screen).
+* **Questions** (4, multiple choice, option order shuffled per participant). Every correct answer is stated
+  explicitly in the instructions; wrong options are plausible misreadings:
+  1. What do you judge on each page? → which of the two heatmaps is more legible
+  2. "More legible" means… → clearer and easier to read (not more accurate / colourful / larger)
+  3. How do you answer? → click the heatmap; the next pair appears right away (no "Next" button)
+  4. A photo comes back with different heatmaps → judge the new pair on its own
+* **Check 1 = gate.** 2 attempts; after a wrong 1st try the wrong questions are marked (answers not revealed) and people can
+  go back to the instructions. Wrong again → screen-out page asking them to return the study on Prolific
+  ("Cancel participation"). Prolific's rules: free to re-read, ≥2 chances, at the start, no free text, **never rejected**.
+* **Check 2 = data-quality flag only.** The identical two pages after the last pair (same rules, two chances), but nobody is
+  screened out. A question answered wrong on the **first** try in both checks sets `exclude_comprehension = true`
+  (analysis only; payment is not affected).
+* Correct answers are never marked on screen.
 * **Demographics** (last page): age (18–100, required), gender (male / female / non-binary / prefer not to say, optional),
   nationality (required, country suggestions), occupation or field of study (required). Mentioned in the consent text.
 * Saved per participant (JSON `summary` + repeated on every CSV row): `check1_attempts`, `check1_passed`,
-  `check1_screened_out`, `check1_first_try_wrong`, `check2_attempts`, `check2_first_try_wrong`, `comp_wrong_both_times`, `exclude_comprehension`,
-  `age`, `gender`, `nationality`, `occupation`. Full answers per attempt are in the JSON (`comp`, `compEnd`, `demographics`).
-* Switch parts off with `comprehension: false` / `demographics: false` in `config.js`. Demo view (`?demo=1`) ticks the
-  correct options and has "fill correct / fill 1 wrong" buttons to show both paths.
+  `check1_screened_out`, `check1_first_try_wrong`, `check2_attempts`, `check2_first_try_wrong`, `comp_wrong_both_times`,
+  `exclude_comprehension`, `age`, `gender`, `nationality`, `occupation`. Full answers per attempt are in the JSON.
 
 ## Timing data (all in seconds)
 
@@ -139,11 +140,11 @@ Per participant (JSON `summary` + repeated on every CSV row):
 | column | from → to |
 |---|---|
 | `duration_total_s` | study page opened → end screen |
-| `duration_instructions_check_s` | check 1 page shown → passed (reading + all attempts) |
-| `duration_trials_s` | first pair → last click (incl. break and check 2) |
+| `duration_check1_s` | instructions shown → check 1 passed (reading, going back, all attempts) |
+| `duration_trials_s` | first pair → last click (incl. break) |
 | `duration_break_s` | break screen shown → "Continue" |
-| `duration_check2_s` | check 2 page shown → done |
-| `duration_trials_only_s` | pure time on the pairs (trials minus break and check 2) |
+| `duration_trials_only_s` | pure time on the pairs (trials minus break) |
+| `duration_check2_s` | instructions shown again → check 2 done |
 | `duration_demographics_s` | demographics shown → submitted |
 | `image_duration_median_s`, `_mean_s`, `_min_s`, `_max_s` | over the 39 real pairs |
 

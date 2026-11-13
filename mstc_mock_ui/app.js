@@ -170,30 +170,43 @@
       save();
     }
     if (S.comp && S.comp.screened_out) return screenOut();
-    if (S.idx >= SEQ.length) return runTrial(); // -> end check or finish
+    if (S.idx >= SEQ.length) return runTrial(); // -> check 2 / demographics / finish
     if (S.idx > 0 || (S.comp && S.comp.passed)) return runTrial();
-    showComp("start");
+    showInstr("start");
   }
 
   // ---------- comprehension check (Prolific-compliant) ----------
-  // START: instructions and questions on ONE page (as Prolific asks), before the task. 2 attempts;
-  //        after a wrong 1st try the wrong questions are marked (not the answers). Failing twice ->
-  //        screen-out page asking them to return the study (never a rejection).
-  // END:   the same questions once more after the last pair, no feedback. A question answered wrong
-  //        both at the start (1st attempt) and at the end flags the person for exclusion from the
-  //        ANALYSIS only (payment is not affected; Prolific doesn't allow rejecting on these).
+  // Pages: instructions -> questions, with "Back" in between (Prolific: participants must be free to re-read).
+  // CHECK 1 (start): gate. 2 attempts; after a wrong 1st try the wrong questions are marked (not the answers).
+  //                  Failing twice -> screen-out page asking them to return the study (never a rejection).
+  // CHECK 2 (end):   the identical two pages again after the last pair, same two chances, but nobody is
+  //                  screened out. A question wrong on the FIRST try in both checks flags the person for
+  //                  exclusion from the ANALYSIS only (payment unaffected).
+  // Every correct answer is stated explicitly in the instructions; wrong options are plausible misreadings.
   const COMP = [
-    { id: "task", q: "What do you do on each screen?", hint: "Have another look at the instructions above.",
-      opts: ["Click the heatmap I find more legible", "Click the heatmap with the most red", "Click the heatmap that looks most like the photo", "Click the photo"] },
-    { id: "legible", q: "What does \u201cmore legible\u201d mean in this study?", hint: "Have another look at the instructions above.",
-      opts: ["Clearer and easier to read", "More colourful", "Covers more of the photo", "Looks more like the photo"] },
-    { id: "right_answer", q: "Is there a right or wrong answer for each pair?", hint: "Have another look at the instructions above.",
-      opts: ["No, it's my own impression", "Yes, one heatmap is always the correct one", "Yes, the left heatmap is always correct"] },
-    { id: "speed", q: "How long should you spend on each pair?", hint: "Have another look at the instructions above.",
-      opts: ["A few seconds, going with my impression", "At least a minute per pair", "As long as it takes to find the correct one"] },
-    { id: "repeat", q: "The same photo shows up again with different heatmaps. What do you do?", hint: "Have another look at the instructions above.",
-      opts: ["Judge the new pair on its own", "Pick the same side as last time", "Skip it"] },
-  ]; // first option = correct; the order shown is shuffled per participant (same order at start and end)
+    { id: "judge", q: "What do you judge on each page?",
+      opts: ["Which of the two heatmaps is more legible", "Which heatmap matches the photo better", "Which heatmap shows the main object", "How clear the photo at the top is"] },
+    { id: "legible", q: "In this study, a heatmap is \u201cmore legible\u201d when it is\u2026",
+      opts: ["clearer and easier to read", "more accurate", "more colourful", "larger"] },
+    { id: "answer", q: "How do you give your answer?",
+      opts: ["I click the heatmap, and the next pair appears right away", "I select a heatmap, then click a \u201cNext\u201d button", "I rate both heatmaps on a scale", "I click the photo"] },
+    { id: "repeat", q: "A photo you've already seen appears again with different heatmaps. What do you do?",
+      opts: ["Judge the new pair on its own", "Choose the same side as last time", "Choose the heatmap most similar to my earlier choice", "Choose randomly, since I've seen it already"] },
+  ]; // first option = correct; the order shown is shuffled per participant (same order in both checks)
+  const HINT = "Have another look at the instructions (\u201cBack to the instructions\u201d).";
+
+  function showInstr(stage) {
+    compStage = stage;
+    $("#i-ntrials").textContent = SEQ.length; // participants just see the total
+    const key = stage === "start" ? "instrShownAt" : "instr2ShownAt";
+    if (!S[key]) { S[key] = new Date().toISOString(); save(); }
+    // Back goes to the welcome page only before the task; once the pairs have started there's no going back
+    $("#btn-instr-back").style.visibility = stage === "start" ? "visible" : "hidden";
+    show("s-instr");
+  }
+  $("#btn-instr-back").onclick = () => { if (compStage === "start" && !(S.comp && S.comp.passed)) show("s-welcome"); };
+  $("#btn-instr-next").onclick = () => showComp(compStage);
+  $("#btn-comp-back").onclick = () => showInstr(compStage);
 
   let compStage = "start";
   function showComp(stage) {
@@ -201,26 +214,23 @@
     const rnd = mulberry32(hash("comp|" + S.pid));
     const start = stage === "start";
     const tries = start ? (S.comp ? S.comp.attempts : []) : (S.compEndAttempts || []);
-    // start and end show the IDENTICAL page: instructions + the same questions (Prolific: checks are
-    // answered with the instructions in view, not from memory). End = 1 attempt, no feedback.
-    $("#instr-block").hidden = false;
-    $("#i-ntrials").textContent = SEQ.length; // participants just see the total
+    // both checks show the IDENTICAL page (same wording, questions, option order, rules)
     $("#comp-eyebrow").textContent = "Quick check";
-    $("#comp-title").textContent = `Please answer these ${COMP.length} questions`;
-    $("#comp-lead").textContent = "Not sure? Re-read the instructions above. You have two chances to get these right.";
-    $("#btn-comp").textContent = "Continue";
+    $("#comp-title").textContent = `Please answer these ${COMP.length} questions about the instructions`;
+    $("#comp-lead").textContent = "Not sure? Go back and re-read the instructions. You have two chances to get these right.";
+    $("#btn-comp").textContent = "Check my answers";
     const shownKey = start ? "compShownAt" : "compEndShownAt";
     if (!S[shownKey]) { S[shownKey] = new Date().toISOString(); save(); }
     const last = tries.length === 1 ? tries[0] : null; // after a failed 1st attempt (start AND end: same page, same rules)
     $("#comp-msg").hidden = !last;
-    if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). Please re-read the instructions above, then try again. <b>This is your last attempt.</b>";
+    if (last) $("#comp-msg").innerHTML = "Some answers aren't right yet (marked in red). Please re-read the instructions, then try again. <b>This is your last attempt.</b>";
     $("#comp-qs").innerHTML = COMP.map((c) => {
       const order = shuffle(c.opts.map((_, i) => i), rnd);
       const wrong = last && !last.correct[c.id];
       const prev = last ? last.answers_idx[c.id] : null;
       return `<fieldset class="q${wrong ? " wrong" : ""}" data-q="${c.id}"><legend>${c.q}</legend>` +
         order.map((i) => `<label class="opt"><input type="radio" name="${c.id}" value="${i}"${prev === i && !wrong ? " checked" : ""}><span>${c.opts[i]}</span></label>`).join("") +
-        `<p class="hint">Not quite. ${c.hint}</p></fieldset>`;
+        `<p class="hint">Not quite. ${HINT}</p></fieldset>`;
     }).join("");
     $("#comp-err").hidden = true;
     show("s-comp");
@@ -243,13 +253,13 @@
       correct, n_wrong: Object.values(correct).filter((v) => !v).length };
     rec.answers_idx = answers; // 0 = correct option
     if (compStage === "end") {
-      // CHECK 2 (after the 5th pair): same page, same two chances, but never screened out here
-      // (they've already started the task). Its FIRST attempt counts for the exclusion flag.
+      // CHECK 2 (end): same pages, same two chances, but never screened out here.
+      // Its FIRST attempt counts for the exclusion flag.
       S.compEndAttempts = S.compEndAttempts || [];
       S.compEndAttempts.push(rec);
       S.compEnd = S.compEndAttempts[0];
       if (rec.n_wrong && S.compEndAttempts.length < 2) { save(); return showComp("end"); }
-      S.compEndDoneAt = rec.at; save(); return runTrial(); // -> back to the pairs
+      S.compEndDoneAt = rec.at; save(); return runTrial(); // -> demographics -> end
     }
     S.comp = S.comp || { attempts: [], passed: false, screened_out: false };
     S.comp.attempts.push(rec);
@@ -326,14 +336,14 @@
     const sec = (a, b) => { const d = (t(b) - t(a)) / 1000; return Number.isFinite(d) ? Math.round(d) : ""; };
     const main = S.responses.filter((r) => r.kind === "main"), rts = main.map((r) => r.image_duration_s).filter((v) => v != null);
     const sorted = rts.slice().sort((a, b) => a - b), lastClick = S.responses.length ? S.responses[S.responses.length - 1].timestamp : "";
-    const brk = sec(S.breakStartedAt, S.breakEndedAt), chk2 = sec(S.compEndShownAt, S.compEndDoneAt), trials = sec(S.trialsStartedAt, lastClick);
+    const brk = sec(S.breakStartedAt, S.breakEndedAt), trials = sec(S.trialsStartedAt, lastClick);
     return {
       duration_total_s: sec(S.opened || S.started, S.finished),                       // welcome page -> end screen
-      duration_instructions_check_s: sec(S.compShownAt, S.trialsStartedAt),           // reading + start check (all attempts)
-      duration_trials_s: trials,                                                      // first pair -> last click, incl. break + check 2
+      duration_check1_s: sec(S.instrShownAt, S.trialsStartedAt),                     // instructions + check 1 (all attempts, incl. going back)
+      duration_trials_s: trials,                                                      // first pair -> last click, incl. break
       duration_break_s: brk,
-      duration_check2_s: chk2,
-      duration_trials_only_s: trials !== "" ? trials - (brk || 0) - (chk2 || 0) : "",  // pure time spent on the pairs
+      duration_trials_only_s: trials !== "" ? trials - (brk || 0) : "",               // pure time spent on the pairs
+      duration_check2_s: sec(S.instr2ShownAt, S.compEndDoneAt),                       // instructions + check 2 at the end
       duration_demographics_s: sec(S.demoShownAt, S.demographics && S.demographics.at),
       image_duration_median_s: sorted.length ? sorted[Math.floor(sorted.length / 2)] : "",
       image_duration_mean_s: rts.length ? +(rts.reduce((a, b) => a + b, 0) / rts.length).toFixed(3) : "",
@@ -346,10 +356,8 @@
   // One click = one answer: the chosen card flashes briefly, then the next pair loads.
   let cur = null; // { t0, locked }
   function runTrial() {
-    // comprehension check 2: same page again, right after the Nth screen (CFG.secondCheckAfter, default 5)
-    const after2 = Math.min(CFG.secondCheckAfter ?? 5, SEQ.length);
-    if (CFG.comprehension !== false && S.idx === after2 && !S.compEndDoneAt) return showComp("end");
     if (S.idx >= SEQ.length) {
+      if (CFG.comprehension !== false && !S.compEndDoneAt) return showInstr("end"); // check 2: same pages again
       if (CFG.demographics !== false && !S.demographics) return showDemo();
       return finish();
     }
@@ -384,7 +392,17 @@
     Promise.all(imgs.map((im) => (im.decode ? im.decode().catch(() => {}) : null)))
       .then(() => { c.t0 = performance.now(); c.onset = new Date().toISOString(); c.locked = false; });
     show("s-trial");
+    lockBack();
     preload(S.idx + 1);
+  }
+
+  // once the pairs have started, the browser's Back button must not leave or rewind the study
+  let backLocked = false;
+  function lockBack() {
+    if (backLocked) return;
+    backLocked = true;
+    try { history.pushState({ mstc: 1 }, "", location.href); } catch {}
+    window.addEventListener("popstate", () => { try { history.pushState({ mstc: 1 }, "", location.href); } catch {} });
   }
 
   function preload(i) {
