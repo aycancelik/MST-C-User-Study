@@ -63,7 +63,6 @@
   });
 
   // ---------- form widgets ----------
-  const METHODS_FAM = [["gradcam", "Grad-CAM"], ["integrated_gradients", "Integrated Gradients"], ["lime", "LIME"], ["lrp", "LRP (any variant)"]];
   function initForms() {
     $$(".opts").forEach((box) => {
       const multi = box.classList.contains("multi"), name = box.dataset.name;
@@ -75,13 +74,6 @@
       box.innerHTML = `<span class="end">${box.dataset.lo}</span>` +
         [1, 2, 3, 4, 5].map((v) => `<label><input type="radio" name="${name}" value="${v}">${v}</label>`).join("") +
         `<span class="end">${box.dataset.hi}</span>`;
-    });
-    $("#familiarity").innerHTML = `<span></span>` +
-      ["never heard of it", "", "", "", "use it regularly"].map((h, i) => `<span class="h">${i + 1}${h ? "<br>" + h : ""}</span>`).join("") +
-      METHODS_FAM.map(([k, label]) => `<span>${label}</span>` +
-        [1, 2, 3, 4, 5].map((v) => `<label><input type="radio" name="fam_${k}" value="${v}">${v}</label>`).join("")).join("");
-    $("#f-post").addEventListener("change", (e) => {
-      if (e.target.name === "recognised_methods") $("#fs-influence").hidden = e.target.value === "No";
     });
   }
   function readForm(form) {
@@ -243,7 +235,7 @@
   // Every correct answer is stated explicitly in the instructions; wrong options are plausible misreadings.
   const COMP = [
     { id: "task", q: "What are you asked to do on each page?",
-      opts: ["Choose the heatmap that's easier to read and more visually appealing", "Choose the heatmap that best matches the photo", "Work out what the heatmap is highlighting", "Rate how accurate each heatmap is"] },
+      opts: ["Choose the heatmap that's easier to read", "Choose the heatmap that best matches the photo", "Work out what the heatmap is highlighting", "Rate how accurate each heatmap is"] },
     { id: "interpret", q: "Do you need to figure out what the heatmaps mean?",
       opts: ["No -- just judge how easy each one is to read and how it looks", "Yes, I should work out what each heatmap highlights", "Yes, I should match each heatmap to the photo", "No, I should ignore the heatmaps entirely"] },
     { id: "answer", q: "How do you give your answer?",
@@ -400,8 +392,7 @@
   // ---------- debrief ----------
   $("#f-post").addEventListener("submit", (e) => {
     e.preventDefault();
-    const req = ["cues", "strategy", "recognised_methods", ...METHODS_FAM.map(([k]) => "fam_" + k), "fatigue_onset", "length_rating", "difficulty"];
-    if (!$("#fs-influence").hidden) req.push("recognition_influence");
+    const req = ["cues", "strategy", "fatigue_onset", "length_rating", "difficulty"];
     const v = checkForm(e.target, req, $("#post-err"));
     if (!v) return;
     S.debrief = v; setPhase("bg"); route();
@@ -656,7 +647,6 @@
       if (i.value) return;
       i.value = i.type === "number" ? String(18 + Math.floor(Math.random() * 50)) : i.name === "nationality" ? "Germany" : "Researcher";
     });
-    $("#fs-influence").hidden = false;
     form.requestSubmit();
   }
   // simulated participant: RTs drift faster over the session, a bit of noise
