@@ -10,11 +10,15 @@ whichever columns you ask for.
 Usage (from mstc_pilot_ui/):
   python scripts/check_firebase.py                                 # overview table
   python scripts/check_firebase.py --list-columns                  # see every available column name
-  python scripts/check_firebase.py --columns post_strategy,post_comments
+  python scripts/check_firebase.py --columns post_strategy,post_comments   # auto-switches to --long
   python scripts/check_firebase.py --columns post_strategy --participant P-5MVBTD
   python scripts/check_firebase.py --trials --columns kind,chosen_method,rt_ms --participant P-5MVBTD
   python scripts/check_firebase.py --study pilot_study --csv-out /tmp/participants.csv
   python scripts/check_firebase.py --raw-json --participant P-5MVBTD   # the full .json, pretty-printed
+
+A wide grid is unreadable once a freetext column (post_strategy, post_comments, ...) is in the
+mix, so those auto-switch to --long: one wrapped "field: value" block per participant instead of
+a grid row. Force one or the other with --long / --table.
 
 Read-only: this never writes to Firebase.
 """
@@ -24,10 +28,14 @@ import argparse
 import io
 import json
 import re
+import shutil
+import textwrap
 import urllib.request
 from pathlib import Path
 
 import pandas as pd
+
+LONG_TEXT_COLUMNS = {"post_strategy", "post_comments"}
 
 CONFIG_JS = Path(__file__).resolve().parents[1] / "config.js"
 
@@ -83,6 +91,23 @@ def select_columns(df: pd.DataFrame, wanted: list[str] | None) -> pd.DataFrame:
     return df[wanted]
 
 
+def print_long(df: pd.DataFrame, id_col: str = "participant_id") -> None:
+    """One block per row: wrapped 'field: value' lines, instead of an unreadable wide grid."""
+    width = min(shutil.get_terminal_size(fallback=(100, 24)).columns, 100)
+    label_width = max((len(c) for c in df.columns), default=10) + 2
+    for _, row in df.iterrows():
+        header = str(row.get(id_col, "")) if id_col in df.columns else ""
+        print(f"=== {header} ===" if header else "===")
+        for col in df.columns:
+            if col == id_col:
+                continue
+            val = row[col]
+            val = "" if pd.isna(val) else str(val)
+            wrapped = textwrap.fill(val, width=width - label_width, subsequent_indent=" " * label_width) or "(empty)"
+            print(f"{col + ':':<{label_width}}{wrapped}")
+        print()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--url", default=None, help="Firebase submissions.json URL (default: read from config.js)")
@@ -93,7 +118,10 @@ def main() -> None:
     ap.add_argument("--study", default=None, help="only rows with this study tag (e.g. pilot_study)")
     ap.add_argument("--csv-out", type=Path, default=None, help="write the result to this CSV instead of printing")
     ap.add_argument("--raw-json", action="store_true", help="dump the full .json for --participant, pretty-printed")
-    ap.add_argument("--max-width", type=int, default=40, help="truncate each cell to this many characters when printing (0 = no truncation)")
+    ap.add_argument("--max-width", type=int, default=40, help="truncate each cell to this many characters in --table mode (0 = no truncation)")
+    fmt = ap.add_mutually_exclusive_group()
+    fmt.add_argument("--long", action="store_true", help="one wrapped field: value block per row (auto-on for freetext columns)")
+    fmt.add_argument("--table", action="store_true", help="force the wide grid even for freetext columns")
     args = ap.parse_args()
 
     url = args.url or default_url()
@@ -134,11 +162,20 @@ def main() -> None:
                          "sum_valid", "sum_attention_passed", "sum_attention_total",
                          "sum_check1_attempts", "sum_check1_passed", "post_strategy"]
         wanted = [c for c in default_cols if c in df.columns]
+
+    use_long = args.long or (not args.table and wanted is not None and any(c in LONG_TEXT_COLUMNS for c in wanted))
+    id_col = "participant_id" if "participant_id" in df.columns else None
+    if use_long and id_col and wanted and id_col not in wanted:
+        wanted = [id_col] + wanted
     out = select_columns(df, wanted)
 
     if args.csv_out:
         out.to_csv(args.csv_out, index=False)
         print(f"Wrote {len(out)} row(s) to {args.csv_out}")
+        return
+
+    if use_long:
+        print_long(out, id_col=id_col or out.columns[0])
         return
 
     with pd.option_context("display.max_rows", None, "display.max_columns", None,
